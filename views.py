@@ -130,8 +130,8 @@ class TestUtility(QMainWindow):
         # Create menubar
         menubar = self.menuBar()
         file_menu = menubar.addMenu("&File")
-        file_menu.addAction(quit)
         file_menu.addAction(save)
+        file_menu.addAction(quit)
         about_menu = menubar.addMenu("&About")
         about_menu.addAction(about)
 
@@ -221,7 +221,7 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        procedure = B505Procedure.B505Procedure()
+        procedure = B505Procedure.B505Procedure(self)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
@@ -327,6 +327,19 @@ class TestUtility(QMainWindow):
 
     def save_settings(self):
         pass
+
+    def closeEvent(self, event):
+        event.accept()
+
+        quit_msg = "Are you sure you want to exit the program?"
+        reply = QMessageBox.question(self, 'Message',
+                                     quit_msg, QMessageBox.Yes, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
 
 if __name__ == "__main__":
     app = QApplication([])

@@ -5,12 +5,13 @@ from PyQt5.QtWidgets import (QWizard, QWizardPage, QLabel, QVBoxLayout,
 
 
 class B505Procedure(QWizard):
-    def __init__(self):
+
+    def __init__(self, test_utility):
         super().__init__()
-        # Change the standard QWizard Cancel button to "abort"
-        self.setButtonText(QWizard.CancelButton, "Abort")
-        # self.button = QPushButton("Abort")
-        # self.setButton(QWizard.CancelButton, self.button)
+        self.abort_btn = QPushButton("Abort")
+        self.abort_btn.clicked.connect(self.abort)
+        self.setButton(QWizard.CancelButton, self.abort_btn)
+
         self.addPage(Setup())
         self.addPage(WatchDog())
         self.addPage(OneWireMaster())
@@ -19,6 +20,11 @@ class B505Procedure(QWizard):
         self.addPage(UartPower())
         self.addPage(DeepSleep())
         self.addPage(FinalPage())
+
+        self.test_utility = test_utility
+
+    def abort(self):
+        self.test_utility.initUI()
 
 
 class Setup(QWizardPage):
