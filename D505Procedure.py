@@ -1,16 +1,20 @@
 from views import TestUtility
 from PyQt5.QtWidgets import (QWizard, QWizardPage, QLabel, QVBoxLayout,
                              QCheckBox, QGridLayout, QProgressBar,
-                             QPushButton)
+                             QPushButton, QMessageBox)
 
 
-class B505Procedure(QWizard):
+class D505Procedure(QWizard):
 
     def __init__(self, test_utility):
         super().__init__()
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)
-        self.setButton(QWizard.CancelButton, self.abort_btn)
+        self.setButton(QWizard.CustomButton1, self.abort_btn)
+
+        btn_layout = [QWizard.Stretch, QWizard.BackButton, QWizard.NextButton,
+                      QWizard.CustomButton1]
+        self.setButtonLayout(btn_layout)
 
         self.addPage(Setup())
         self.addPage(WatchDog())
@@ -24,7 +28,14 @@ class B505Procedure(QWizard):
         self.test_utility = test_utility
 
     def abort(self):
-        self.test_utility.initUI()
+        msg = "Are you sure you want to cancel the test?"
+        confirmation = QMessageBox.question(self, "Abort Test?", msg,
+                                            QMessageBox.Yes,
+                                            QMessageBox.No)
+        if confirmation == QMessageBox.Yes:
+            self.test_utility.initUI()
+        else:
+            pass
 
 
 class Setup(QWizardPage):

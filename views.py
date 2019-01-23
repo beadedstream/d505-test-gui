@@ -1,8 +1,9 @@
-import B505Procedure
+import D505Procedure
 from datetime import datetime
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, \
-    QApplication, QLabel, QLineEdit, QComboBox, QGridLayout, QSpacerItem, \
-    QGroupBox, QCheckBox, QHBoxLayout, QMessageBox, QAction, QFileDialog
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QVBoxLayout,
+    QApplication, QLabel, QLineEdit, QComboBox, QGridLayout, QSpacerItem,
+    QGroupBox, QCheckBox, QHBoxLayout, QMessageBox, QAction, QFileDialog,
+    QSizePolicy, QDialog)
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings
 
@@ -21,9 +22,6 @@ ABOUT_TEXT = """
 class TestUtility(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUI()
-
-    def initUI(self):
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
         settings_defaults = {
@@ -42,103 +40,111 @@ class TestUtility(QMainWindow):
             if not self.settings.value(key):
                 self.settings.setValue(key, settings_defaults[key])
 
+        # Create program actions.
+        self.save = QAction("Save As. . .", self)
+        self.save.setShortcut("Ctrl+S")
+        self.save.setStatusTip("Set report save location")
+        self.save.triggered.connect(self.save_location)
+
+        self.config = QAction("Settings", self)
+        self.config.setShortcut("Ctrl+E")
+        self.config.setStatusTip("Program Settings")
+        self.config.triggered.connect(self.configuration)
+
+        self.quit = QAction("Quit", self)
+        self.quit.setShortcut("Ctrl+Q")
+        self.quit.setStatusTip("Exit Program")
+        self.quit.triggered.connect(self.close)
+
+        self.about = QAction("About", self)
+        self.about.setShortcut("Ctrl+A")
+        self.about.setStatusTip("About Program")
+        self.about.triggered.connect(self.about_program)
+
+        # Create menubar
+        self.menubar = self.menuBar()
+        self.file_menu = self.menubar.addMenu("&File")
+        self.file_menu.addAction(self.save)
+        self.file_menu.addAction(self.config)
+        self.file_menu.addAction(self.quit)
+        self.serial_menu = self.menubar.addMenu("&Serial")
+        self.about_menu = self.menubar.addMenu("&About")
+        self.about_menu.addAction(self.about)
+
+        self.initUI()
+
+    def initUI(self):
+        RIGHT_SPACING = 350
+        LINE_EDIT_WIDTH = 200
         self.central_widget = QWidget()
 
-        utility_version_lbl = QLabel(f"Utility Version: {VERSION_NUM}")
-        large_arial_font = QFont("Arial", 20)
-        utility_version_lbl.setFont(large_arial_font)
-        date = datetime.today()
-
-        date_formatted = f"Date: {date.year}-{date.month:02}-{date.day:02}"
-
-        date_time_lbl = QLabel(date_formatted)
-
-        date_time_lbl.setFont(large_arial_font)
-
         self.tester_id_lbl = QLabel("Please enter tester ID: ")
-        self.pcba_pn_lbl = QLabel("Please select PCBA part number from drop"
-                                  " down menu: ")
-        self.pcba_sn_lbl = QLabel("Please enter or scan"
-                                  " (using bar code scanner)"
-                                  " DUT serial number: ")
+        self.pcba_pn_lbl = QLabel("Please select PCBA part number: ")
+        self.pcba_sn_lbl = QLabel("Please enter or scan DUT serial number: ")
 
         self.tester_id_input = QLineEdit()
         self.pcba_sn_input = QLineEdit()
+        self.tester_id_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.pcba_sn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
         self.pcba_pn_input = QComboBox()
-        self.pcba_pn_input.addItem("B505")
+        self.pcba_pn_input.addItem("D505")
+        self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
-        config_btn = QPushButton("Setup Menu")
-        config_btn.clicked.connect(self.configuration)
-        start_btn = QPushButton("Start")
-        start_btn.clicked.connect(self.start_procedure)
+        self.start_btn = QPushButton("Start")
+        self.start_btn.clicked.connect(self.start_procedure)
+        self.start_btn.setFixedWidth(200)
 
         self.logo_img = QPixmap("Images/h_logo.png")
         self.logo_img = self.logo_img.scaledToWidth(600)
         self.logo = QLabel()
         self.logo.setPixmap(self.logo_img)
 
-        hbox_btns = QHBoxLayout()
-        hbox_btns.addWidget(config_btn)
-        hbox_btns.addWidget(start_btn)
+        hbox_logo = QHBoxLayout()
+        hbox_logo.addStretch()
+        hbox_logo.addWidget(self.logo)
+        hbox_logo.addStretch()
 
-        vbox_left = QVBoxLayout()
-        vbox_left.addSpacing(50)
-        vbox_left.addWidget(utility_version_lbl)
-        vbox_left.addSpacing(25)
-        vbox_left.addWidget(date_time_lbl)
-        vbox_left.addSpacing(50)
-        vbox_left.addWidget(self.tester_id_lbl)
-        vbox_left.addWidget(self.tester_id_input)
-        vbox_left.addSpacing(50)
-        vbox_left.addWidget(self.pcba_pn_lbl)
-        vbox_left.addWidget(self.pcba_pn_input)
-        vbox_left.addSpacing(50)
-        vbox_left.addWidget(self.pcba_sn_lbl)
-        vbox_left.addWidget(self.pcba_sn_input)
-        vbox_left.addSpacing(50)
-        vbox_left.addLayout(hbox_btns)
-        vbox_left.addStretch()
+        hbox_test_id = QHBoxLayout()
+        hbox_test_id.addStretch()
+        hbox_test_id.addWidget(self.tester_id_lbl)
+        hbox_test_id.addWidget(self.tester_id_input)
+        hbox_test_id.addSpacing(RIGHT_SPACING)
 
-        vbox_right = QVBoxLayout()
-        vbox_right.addStretch()
-        vbox_right.addWidget(self.logo)
-        vbox_right.addSpacing(50)
-        vbox_right.addStretch()
+        hbox_pn = QHBoxLayout()
+        hbox_pn.addStretch()
+        hbox_pn.addWidget(self.pcba_pn_lbl)
+        hbox_pn.addWidget(self.pcba_pn_input)
+        hbox_pn.addSpacing(RIGHT_SPACING)
 
-        grid = QGridLayout()
-        grid.addLayout(vbox_left, 0, 0)
-        grid.addLayout(vbox_right, 0, 1)
-        grid.setHorizontalSpacing(100)
+        hbox_sn = QHBoxLayout()
+        hbox_sn.addStretch()
+        hbox_sn.addWidget(self.pcba_sn_lbl)
+        hbox_sn.addWidget(self.pcba_sn_input)
+        hbox_sn.addSpacing(RIGHT_SPACING)
 
-        # Create program actions.
-        quit = QAction("Quit", self)
-        quit.setShortcut("Ctrl+Q")
-        quit.setStatusTip("Exit Program")
-        quit.triggered.connect(self.close)
+        hbox_start_btn = QHBoxLayout()
+        hbox_start_btn.addStretch()
+        hbox_start_btn.addWidget(self.start_btn)
+        hbox_start_btn.addSpacing(RIGHT_SPACING)
 
-        about = QAction("About", self)
-        about.setShortcut("Ctrl+A")
-        about.setStatusTip("About Program")
-        about.triggered.connect(self.about_program)
-
-        save = QAction("Save As. . .", self)
-        save.setShortcut("Ctrl+S")
-        save.setStatusTip("Set report save location")
-        save.triggered.connect(self.save_location)
-
-        # Create menubar
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu("&File")
-        file_menu.addAction(save)
-        file_menu.addAction(quit)
-        about_menu = menubar.addMenu("&About")
-        about_menu.addAction(about)
+        vbox = QVBoxLayout()
+        vbox.addSpacing(50)
+        vbox.addLayout(hbox_logo)
+        vbox.addSpacing(50)
+        vbox.addLayout(hbox_test_id)
+        vbox.addSpacing(50)
+        vbox.addLayout(hbox_pn)
+        vbox.addSpacing(50)
+        vbox.addLayout(hbox_sn)
+        vbox.addSpacing(50)
+        vbox.addLayout(hbox_start_btn)
+        vbox.addSpacing(50)
 
         # Put an initial message on the statusbar.
         self.statusBar().showMessage("Set configuration settings!")
 
-        self.central_widget.setLayout(grid)
+        self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
 
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -221,7 +227,7 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        procedure = B505Procedure.B505Procedure(self)
+        procedure = D505Procedure.D505Procedure(self)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
@@ -238,49 +244,58 @@ class TestUtility(QMainWindow):
         self.input_v_status.setText(f"Input Voltage: {voltage} V")
 
     def configuration(self):
-        central_widget = QWidget()
+        FILE_BTN_WIDTH = 30
 
-        hex_file_btn = QPushButton("Set hex file")
+        settings_widget = QDialog(self)
+
+        hex_file_btn = QPushButton("[...]")
+        hex_file_btn.setFixedWidth(FILE_BTN_WIDTH)
         hex_file_path = QLabel(self.settings.value("hex_file_path"))
-        report_save_loc_btn = QPushButton("Set report save location")
-        report_save_loc_path = QLabel(self.settings.value("report_file_path"))
-        config_file_btn = QPushButton("Set configuration file location")
+        report_file_btn = QPushButton("[...]")
+        report_file_btn.setFixedWidth(FILE_BTN_WIDTH)
+        report_file_path = QLabel(self.settings.value("report_file_path"))
+        config_file_btn = QPushButton("[...]")
+        config_file_btn.setFixedWidth(FILE_BTN_WIDTH)
         config_file_path = QLabel(self.settings.value("config_file_path"))
 
+        hex_file_layout = QHBoxLayout()
+        hex_file_layout.addWidget(hex_file_path)
+        hex_file_layout.addStretch()
+        hex_file_layout.addWidget(hex_file_btn)
+
+        report_file_layout = QHBoxLayout()
+        report_file_layout.addWidget(report_file_path)
+        report_file_layout.addStretch()
+        report_file_layout.addWidget(report_file_btn)
+
+        config_file_layout = QHBoxLayout()
+        config_file_layout.addWidget(config_file_path)
+        config_file_layout.addStretch()
+        config_file_layout.addWidget(config_file_btn)
+
         save_loc_layout = QVBoxLayout()
-        save_loc_layout.addWidget(hex_file_btn)
-        save_loc_layout.addWidget(hex_file_path)
-        save_loc_layout.addWidget(report_save_loc_btn)
-        save_loc_layout.addWidget(report_save_loc_path)
-        save_loc_layout.addWidget(config_file_btn)
-        save_loc_layout.addWidget(config_file_path)
+        save_loc_layout.addLayout(hex_file_layout)
+        save_loc_layout.addLayout(report_file_layout)
+        save_loc_layout.addLayout(config_file_layout)
 
         save_loc_group = QGroupBox("Save Locations")
         save_loc_group.setLayout(save_loc_layout)
 
         iridium_imei = QLineEdit()
         iridium_imei.setText(self.settings.value("iridium_imei"))
-        iridium_imei.setReadOnly(True)
-        iridium_imei_btn = QPushButton("Change IMEI")
 
         iridium_layout = QVBoxLayout()
         iridium_layout.addWidget(iridium_imei)
-        iridium_layout.addWidget(iridium_imei_btn)
 
         iridium_group = QGroupBox("Iridium IMEI")
         iridium_group.setLayout(iridium_layout)
 
         lat_start = QLineEdit(self.settings.value("lat_start"))
-        lat_start.setReadOnly(True)
         lat_lbl = QLabel("to")
         lat_stop = QLineEdit(self.settings.value("lat_stop"))
-        lat_stop.setReadOnly(True)
         lon_start = QLineEdit(self.settings.value("lon_start"))
-        lon_start.setReadOnly(True)
         lon_lbl = QLabel("to")
         lon_stop = QLineEdit(self.settings.value("lon_stop"))
-        lon_stop.setReadOnly(True)
-        location_limits_btn = QPushButton("Change Limits")
 
         lat_layout = QHBoxLayout()
         lat_layout.addWidget(lat_start)
@@ -295,35 +310,60 @@ class TestUtility(QMainWindow):
         location_layout = QVBoxLayout()
         location_layout.addLayout(lat_layout)
         location_layout.addLayout(lon_layout)
-        location_layout.addWidget(location_limits_btn)
 
         location_limits_group = QGroupBox("Location Limits")
         location_limits_group.setLayout(location_layout)
 
-        save_btn = QPushButton("Save Settings")
+        port1_lbl = QLabel("Port 1 TAC ID:")
+        port1_tac_id = QLineEdit()
+        port2_lbl = QLabel("Port 2 TAC ID:")
+        port2_tac_id = QLineEdit()
+        port3_lbl = QLabel("Port 3 TAC ID:")
+        port3_tac_id = QLineEdit()
+        port4_lbl = QLabel("Port 4 TAC ID:")
+        port4_tac_id = QLineEdit()
 
-        vbox_left = QVBoxLayout()
-        vbox_left.addWidget(save_loc_group)
-        vbox_left.addSpacing(25)
-        vbox_left.addWidget(iridium_group)
-        vbox_left.addSpacing(25)
-        vbox_left.addWidget(location_limits_group)
-        vbox_left.addSpacing(25)
-        vbox_left.addWidget(save_btn)
+        port_layout = QGridLayout()
+        port_layout.addWidget(port1_lbl, 0, 0)
+        port_layout.addWidget(port1_tac_id, 0, 1)
+        port_layout.addWidget(port2_lbl, 1, 0)
+        port_layout.addWidget(port2_tac_id, 1, 1)
+        port_layout.addWidget(port3_lbl, 2, 0)
+        port_layout.addWidget(port3_tac_id, 2, 1)
+        port_layout.addWidget(port4_lbl, 3, 0)
+        port_layout.addWidget(port4_tac_id, 3, 1)
 
-        vbox_right = QVBoxLayout()
-        vbox_right.addStretch()
-        vbox_right.addWidget(self.logo)
-        vbox_right.addSpacing(50)
-        vbox_right.addStretch()
+        port_group = QGroupBox("TAC IDs")
+        port_group.setLayout(port_layout)
+
+        apply_btn = QPushButton("Apply Settings")
+        cancel_btn = QPushButton("Cancel")
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(cancel_btn)
+        button_layout.addStretch()
+        button_layout.addWidget(apply_btn)
+
+        hbox_top = QHBoxLayout()
+        hbox_top.addWidget(save_loc_group)
+        hbox_top.addWidget(iridium_group)
+        hbox_top.addWidget(location_limits_group)
+
+        hbox_bottom = QHBoxLayout()
+        hbox_bottom.addStretch()
+        hbox_bottom.addWidget(port_group)
+        hbox_bottom.addStretch()
 
         grid = QGridLayout()
-        grid.addLayout(vbox_left, 0, 0)
-        grid.addLayout(vbox_right, 0, 1)
+        grid.addLayout(hbox_top, 0, 0)
+        grid.addLayout(hbox_bottom, 1, 0)
+        grid.addLayout(button_layout, 2, 0)
         grid.setHorizontalSpacing(100)
 
-        central_widget.setLayout(grid)
-        self.setCentralWidget(central_widget)
+        settings_widget.setLayout(grid)
+        settings_widget.setWindowTitle("D505 Configuration Settings")
+        settings_widget.show()
+        settings_widget.resize(800, 200)
 
     def save_settings(self):
         pass
@@ -332,10 +372,11 @@ class TestUtility(QMainWindow):
         event.accept()
 
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QMessageBox.question(self, 'Message',
-                                     quit_msg, QMessageBox.Yes, QMessageBox.No)
+        confirmation = QMessageBox.question(self, 'Message',
+                                            quit_msg, QMessageBox.Yes,
+                                            QMessageBox.No)
 
-        if reply == QMessageBox.Yes:
+        if confirmation == QMessageBox.Yes:
             event.accept()
         else:
             event.ignore()

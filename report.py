@@ -7,6 +7,7 @@ class Report:
         today = dt.now()
         self.date = f"{today.day:02d}-{today.month:02d}-{today.year}"
         self.data = {
+            "Timestamp": None,
             "PCBA PN": None,
             "PCBA SN": None,
             "Date": self.date,
@@ -39,6 +40,14 @@ class Report:
         self.file_path = file_path
 
     def generate_report(self):
+        """Writes all data in the data dictionary to an output file."""
+        # Get the time again for a more accurate report timestamp.
+        today = dt.now()
+        self.data["Timestamp"] = (
+            f"{today.year}-{today.month:02d}-{today.day:02d}"
+            f" {today.hour:02d}:{today.minute:02d}"
+            f":{today.second}"
+        )
         name = path.join(self.file_path,
                          f"{self.date}-ID-{self.data['Tester ID']}.txt")
         f = open(name, "w")
