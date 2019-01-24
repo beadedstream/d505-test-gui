@@ -1,10 +1,10 @@
 import D505Procedure
-from datetime import datetime
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QVBoxLayout,
-    QApplication, QLabel, QLineEdit, QComboBox, QGridLayout, QSpacerItem,
-    QGroupBox, QCheckBox, QHBoxLayout, QMessageBox, QAction, QFileDialog,
-    QSizePolicy, QDialog)
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtWidgets import (
+    QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
+    QLineEdit, QComboBox, QGridLayout, QGroupBox, QCheckBox, QHBoxLayout,
+    QMessageBox, QAction, QFileDialog, QDialog
+)
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QSettings
 
 
@@ -12,7 +12,6 @@ VERSION_NUM = "v0.1"
 
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 750
-
 
 ABOUT_TEXT = """
              PCB assembly test utility. Copyright Beaded Streams, 2018.
