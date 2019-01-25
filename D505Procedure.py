@@ -17,7 +17,7 @@ class D505Procedure(QWizard):
         self.setButton(QWizard.CustomButton1, self.abort_btn)
 
         btn_layout = [QWizard.Stretch, QWizard.BackButton, QWizard.NextButton,
-                      QWizard.CustomButton1]
+                      QWizard.FinishButton, QWizard.CustomButton1]
         self.setButtonLayout(btn_layout)
 
         self.addPage(Setup())
@@ -131,10 +131,6 @@ class Setup(QWizardPage):
 
 class WatchDog(QWizardPage):
     def __init__(self):
-        LINE_EDIT_WIDTH = 75
-        VERT_SPACING = 25
-        RIGHT_SPACING = 200
-
         super().__init__()
 
         self.system_font = QApplication.font().family()
@@ -396,30 +392,128 @@ class UartPower(QWizardPage):
 
 class DeepSleep(QWizardPage):
     def __init__(self):
-        super().__init__()
-        self.instructions_lbl = QLabel("Disconnect the PSoC programmer")
-        self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off")
+        LINE_EDIT_WIDTH = 75
+        RIGHT_SPACING = 50
+        LEFT_SPACING = 50
 
-        self.layout = QGridLayout()
-        self.layout.setHorizontalSpacing(75)
-        self.layout.setVerticalSpacing(25)
-        self.layout.addWidget(self.instructions_lbl, 0, 0)
-        self.layout.addWidget(self.ble_lbl, 0, 1)
+        super().__init__()
+
+        self.system_font = QApplication.font().family()
+        self.label_font = QFont(self.system_font, 14)
+
+        self.setStyleSheet("QCheckBox::indicator {width: 20px;"
+                           "height: 20px}")
+
+        self.disconnect_lbl = QLabel("Disconnect the PSoC programmer")
+        self.disconnect_lbl.setFont(self.label_font)
+        self.disconnect_chkbx = QCheckBox()
+
+        self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off")
+        self.ble_lbl.setFont(self.label_font)
+        self.ble_chkbx = QCheckBox()
+
+        self.input_i_lbl = QLabel("Switch current meter to uA and record input"
+                                  " current")
+        self.input_i_lbl.setFont(self.label_font)
+        self.input_i_input = QLineEdit()
+        self.input_i_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.input_i_unit = QLabel("uA")
+
+        self.solar_lbl = QLabel("Switch current meter to mA and turn on the "
+                                " 'solar panel simulating power supply'")
+        self.solar_lbl.setFont(self.label_font)
+
+        self.solar_v_lbl = QLabel("Record solar charger voltage")
+        self.solar_v_lbl.setFont(self.label_font)
+        self.solar_v_input = QLineEdit()
+        self.solar_v_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.solar_v_unit = QLabel("V")
+        self.solar_v_unit.setFont(self.label_font)
+
+        self.solar_i_lbl = QLabel("Record solar charger current")
+        self.solar_i_lbl.setFont(self.label_font)
+        self.solar_i_input = QLineEdit()
+        self.solar_i_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.solar_i_unit = QLabel("mA")
+        self.solar_i_unit.setFont(self.label_font)
+
+        self.disconnect_layout = QHBoxLayout()
+        self.disconnect_layout.addSpacing(LEFT_SPACING)
+        self.disconnect_layout.addWidget(self.disconnect_lbl)
+        self.disconnect_layout.addStretch()
+        self.disconnect_layout.addWidget(self.disconnect_chkbx)
+        self.disconnect_layout.addSpacing(RIGHT_SPACING)
+
+        self.ble_layout = QHBoxLayout()
+        self.ble_layout.addSpacing(LEFT_SPACING)
+        self.ble_layout.addWidget(self.ble_lbl)
+        self.ble_layout.addStretch()
+        self.ble_layout.addWidget(self.ble_chkbx)
+        self.ble_layout.addSpacing(RIGHT_SPACING)
+
+        self.input_i_layout = QHBoxLayout()
+        self.input_i_layout.addSpacing(LEFT_SPACING)
+        self.input_i_layout.addWidget(self.input_i_lbl)
+        self.input_i_layout.addStretch()
+        self.input_i_layout.addWidget(self.input_i_input)
+        self.input_i_layout.addWidget(self.input_i_unit)
+        self.input_i_layout.addSpacing(RIGHT_SPACING - 16)
+
+        self.solar_layout = QHBoxLayout()
+        self.solar_layout.addSpacing(LEFT_SPACING)
+        self.solar_layout.addWidget(self.solar_lbl)
+        self.solar_layout.addSpacing(RIGHT_SPACING)
+
+        self.solar_v_layout = QHBoxLayout()
+        self.solar_v_layout.addSpacing(LEFT_SPACING)
+        self.solar_v_layout.addWidget(self.solar_v_lbl)
+        self.solar_v_layout.addStretch()
+        self.solar_v_layout.addWidget(self.solar_v_input)
+        self.solar_v_layout.addWidget(self.solar_v_unit)
+        self.solar_v_layout.addSpacing(RIGHT_SPACING - 10)
+
+        self.solar_i_layout = QHBoxLayout()
+        self.solar_i_layout.addSpacing(LEFT_SPACING)
+        self.solar_i_layout.addWidget(self.solar_i_lbl)
+        self.solar_i_layout.addStretch()
+        self.solar_i_layout.addWidget(self.solar_i_input)
+        self.solar_i_layout.addWidget(self.solar_i_unit)
+        self.solar_i_layout.addSpacing(RIGHT_SPACING - 26)
+
+        self.layout = QVBoxLayout()
+        self.layout.addStretch()
+        self.layout.addLayout(self.disconnect_layout)
+        self.layout.addLayout(self.ble_layout)
+        self.layout.addLayout(self.input_i_layout)
+        self.layout.addSpacing(10)
+        self.layout.addLayout(self.solar_layout)
+        self.layout.addSpacing(5)
+        self.layout.addLayout(self.solar_v_layout)
+        self.layout.addLayout(self.solar_i_layout)
+        self.layout.addStretch()
+
         self.setLayout(self.layout)
 
 
 class FinalPage(QWizardPage):
     def __init__(self):
+        self.system_font = QApplication.font().family()
+        self.label_font = QFont(self.system_font, 14)
+
         super().__init__()
+
         # Placeholder until logic is built in
         self.test_status = "Successful"
         self.test_status_labl = QLabel(f"Test {self.test_status}!")
+        self.test_status_labl.setFont(self.label_font)
         self.break_down_lbl = QLabel("Remove power and disconect all"
                                      " peripherals from DUT")
+        self.break_down_lbl.setFont(self.label_font)
 
-        self.layout = QGridLayout()
-        self.layout.setHorizontalSpacing(75)
-        self.layout.setVerticalSpacing(25)
-        self.layout.addWidget(self.test_status_labl, 0, 0)
-        self.layout.addWidget(self.break_down_lbl, 0, 1)
+        self.layout = QVBoxLayout()
+        self.layout.addStretch()
+        self.layout.addWidget(self.test_status_labl)
+        self.layout.addWidget(self.break_down_lbl)
+        self.layout.addStretch()
+        self.layout.setAlignment(Qt.AlignHCenter)
         self.setLayout(self.layout)
