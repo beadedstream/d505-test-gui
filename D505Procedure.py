@@ -1,4 +1,3 @@
-from views import TestUtility
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
@@ -15,6 +14,7 @@ class D505Procedure(QWizard):
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)
         self.setButton(QWizard.CustomButton1, self.abort_btn)
+        self.button(QWizard.FinishButton).clicked.connect(self.finish)
 
         btn_layout = [QWizard.Stretch, QWizard.BackButton, QWizard.NextButton,
                       QWizard.FinishButton, QWizard.CustomButton1]
@@ -40,6 +40,10 @@ class D505Procedure(QWizard):
             self.test_utility.initUI()
         else:
             pass
+
+    def finish(self):
+        self.test_utility.initUI()
+        # DO: Generate report
 
 
 class Setup(QWizardPage):
@@ -336,8 +340,8 @@ class UartPower(QWizardPage):
                                         height: 20px}")
         self.red_led_chkbx.clicked.connect(self.leds)
         self.red_led_chkbx.clicked.connect(lambda: self.checked(
-                                    self.red_led_lbl,
-                                    self.red_led_chkbx))
+                                           self.red_led_lbl,
+                                           self.red_led_chkbx))
 
         self.leds_lbl1 = QLabel("Remove UART power connection, reconnect the"
                                 " battery & UART")
@@ -347,11 +351,11 @@ class UartPower(QWizardPage):
         self.leds_lbl2.setFont(self.label_font)
         self.leds_chkbx = QCheckBox()
         self.leds_chkbx.clicked.connect(lambda: self.checked(
-                                            self.leds_lbl1,
-                                            self.leds_chkbx))
+                                        self.leds_lbl1,
+                                        self.leds_chkbx))
         self.leds_chkbx.clicked.connect(lambda: self.checked(
-                                            self.leds_lbl2,
-                                            self.leds_chkbx))
+                                        self.leds_lbl2,
+                                        self.leds_chkbx))
         self.leds_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
 
