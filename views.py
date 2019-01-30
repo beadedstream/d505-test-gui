@@ -1,7 +1,8 @@
+import re
 import D505Procedure
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
-    QLineEdit, QComboBox, QGridLayout, QGroupBox, QCheckBox, QHBoxLayout,
+    QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
     QMessageBox, QAction, QFileDialog, QDialog
 )
 from PyQt5.QtGui import QPixmap
@@ -24,27 +25,24 @@ class TestUtility(QMainWindow):
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
         settings_defaults = {
-             "hex_file_path": "/path/to/hex/file",
-             "report_file_path": "/path/to/report/folder",
-             "config_file_path": "/path/to/config/file",
-             "iridium_imei": "300434063218220",
-             "lat_start": "48 01 N",
-             "lat_stop": "48 04 N",
-             "lon_start": "123 02 W",
-             "lon_stop": "123 05 W",
-             "test": "value"
-             }
+            "port1_tac_id": "",
+            "port2_tac_id": "",
+            "port3_tac_id": "",
+            "port4_tac_id": "",
+            "iridium_imei": "300434063218220",
+            "lat_start": "48 01 N",
+            "lat_stop": "48 04 N",
+            "lon_start": "123 02 W",
+            "lon_stop": "123 05 W",
+            "hex_file_path": "/path/to/hex/file",
+            "report_file_path": "/path/to/report/folder"
+        }
 
         for key in settings_defaults:
             if not self.settings.value(key):
                 self.settings.setValue(key, settings_defaults[key])
 
         # Create program actions.
-        self.save = QAction("Save As. . .", self)
-        self.save.setShortcut("Ctrl+S")
-        self.save.setStatusTip("Set report save location")
-        self.save.triggered.connect(self.save_location)
-
         self.config = QAction("Settings", self)
         self.config.setShortcut("Ctrl+E")
         self.config.setStatusTip("Program Settings")
@@ -63,7 +61,6 @@ class TestUtility(QMainWindow):
         # Create menubar
         self.menubar = self.menuBar()
         self.file_menu = self.menubar.addMenu("&File")
-        self.file_menu.addAction(self.save)
         self.file_menu.addAction(self.config)
         self.file_menu.addAction(self.quit)
         self.serial_menu = self.menubar.addMenu("&Serial")
@@ -154,10 +151,10 @@ class TestUtility(QMainWindow):
 
     def save_location(self):
         self.report_file_path = QFileDialog.getSaveFileName(
-                                                            self,
-                                                            "Choose save "
-                                                            "location",
-                                                            None)[0]
+            self,
+            "Choose save "
+            "location",
+            None)[0]
 
     def start_procedure(self):
         central_widget = QWidget()
@@ -245,66 +242,55 @@ class TestUtility(QMainWindow):
     def configuration(self):
         FILE_BTN_WIDTH = 30
 
-        settings_widget = QDialog(self)
+        self.settings_widget = QDialog(self)
 
-        hex_file_btn = QPushButton("[...]")
-        hex_file_btn.setFixedWidth(FILE_BTN_WIDTH)
-        hex_file_path = QLabel(self.settings.value("hex_file_path"))
-        report_file_btn = QPushButton("[...]")
-        report_file_btn.setFixedWidth(FILE_BTN_WIDTH)
-        report_file_path = QLabel(self.settings.value("report_file_path"))
-        config_file_btn = QPushButton("[...]")
-        config_file_btn.setFixedWidth(FILE_BTN_WIDTH)
-        config_file_path = QLabel(self.settings.value("config_file_path"))
+        port1_lbl = QLabel("Port 1 TAC ID:")
+        self.port1_tac_id = QLineEdit(self.settings.value("port1_tac_id"))
+        port2_lbl = QLabel("Port 2 TAC ID:")
+        self.port2_tac_id = QLineEdit(self.settings.value("port2_tac_id"))
+        port3_lbl = QLabel("Port 3 TAC ID:")
+        self.port3_tac_id = QLineEdit(self.settings.value("port3_tac_id"))
+        port4_lbl = QLabel("Port 4 TAC ID:")
+        self.port4_tac_id = QLineEdit(self.settings.value("port4_tac_id"))
 
-        hex_file_layout = QHBoxLayout()
-        hex_file_layout.addWidget(hex_file_path)
-        hex_file_layout.addStretch()
-        hex_file_layout.addWidget(hex_file_btn)
+        port_layout = QGridLayout()
+        port_layout.addWidget(port1_lbl, 0, 0)
+        port_layout.addWidget(self.port1_tac_id, 0, 1)
+        port_layout.addWidget(port2_lbl, 1, 0)
+        port_layout.addWidget(self.port2_tac_id, 1, 1)
+        port_layout.addWidget(port3_lbl, 2, 0)
+        port_layout.addWidget(self.port3_tac_id, 2, 1)
+        port_layout.addWidget(port4_lbl, 3, 0)
+        port_layout.addWidget(self.port4_tac_id, 3, 1)
 
-        report_file_layout = QHBoxLayout()
-        report_file_layout.addWidget(report_file_path)
-        report_file_layout.addStretch()
-        report_file_layout.addWidget(report_file_btn)
+        port_group = QGroupBox("TAC IDs")
+        port_group.setLayout(port_layout)
 
-        config_file_layout = QHBoxLayout()
-        config_file_layout.addWidget(config_file_path)
-        config_file_layout.addStretch()
-        config_file_layout.addWidget(config_file_btn)
-
-        save_loc_layout = QVBoxLayout()
-        save_loc_layout.addLayout(hex_file_layout)
-        save_loc_layout.addLayout(report_file_layout)
-        save_loc_layout.addLayout(config_file_layout)
-
-        save_loc_group = QGroupBox("Save Locations")
-        save_loc_group.setLayout(save_loc_layout)
-
-        iridium_imei = QLineEdit()
-        iridium_imei.setText(self.settings.value("iridium_imei"))
+        self.iridium_imei = QLineEdit()
+        self.iridium_imei.setText(self.settings.value("iridium_imei"))
 
         iridium_layout = QVBoxLayout()
-        iridium_layout.addWidget(iridium_imei)
+        iridium_layout.addWidget(self.iridium_imei)
 
         iridium_group = QGroupBox("Iridium IMEI")
         iridium_group.setLayout(iridium_layout)
 
-        lat_start = QLineEdit(self.settings.value("lat_start"))
+        self.lat_start = QLineEdit(self.settings.value("lat_start"))
         lat_lbl = QLabel("to")
-        lat_stop = QLineEdit(self.settings.value("lat_stop"))
-        lon_start = QLineEdit(self.settings.value("lon_start"))
+        self.lat_stop = QLineEdit(self.settings.value("lat_stop"))
+        self.lon_start = QLineEdit(self.settings.value("lon_start"))
         lon_lbl = QLabel("to")
-        lon_stop = QLineEdit(self.settings.value("lon_stop"))
+        self.lon_stop = QLineEdit(self.settings.value("lon_stop"))
 
         lat_layout = QHBoxLayout()
-        lat_layout.addWidget(lat_start)
+        lat_layout.addWidget(self.lat_start)
         lat_layout.addWidget(lat_lbl)
-        lat_layout.addWidget(lat_stop)
+        lat_layout.addWidget(self.lat_stop)
 
         lon_layout = QHBoxLayout()
-        lon_layout.addWidget(lon_start)
+        lon_layout.addWidget(self.lon_start)
         lon_layout.addWidget(lon_lbl)
-        lon_layout.addWidget(lon_stop)
+        lon_layout.addWidget(self.lon_stop)
 
         location_layout = QVBoxLayout()
         location_layout.addLayout(lat_layout)
@@ -313,30 +299,33 @@ class TestUtility(QMainWindow):
         location_limits_group = QGroupBox("Location Limits")
         location_limits_group.setLayout(location_layout)
 
-        port1_lbl = QLabel("Port 1 TAC ID:")
-        port1_tac_id = QLineEdit()
-        port2_lbl = QLabel("Port 2 TAC ID:")
-        port2_tac_id = QLineEdit()
-        port3_lbl = QLabel("Port 3 TAC ID:")
-        port3_tac_id = QLineEdit()
-        port4_lbl = QLabel("Port 4 TAC ID:")
-        port4_tac_id = QLineEdit()
+        self.hex_btn = QPushButton("[...]")
+        self.hex_btn.setFixedWidth(FILE_BTN_WIDTH)
+        self.hex_btn.clicked.connect(self.choose_hex_file)
+        self.hex_lbl = QLabel("Choose hex file: ")
+        self.hex_path_lbl = QLabel(self.settings.value("hex_file_path"))
 
-        port_layout = QGridLayout()
-        port_layout.addWidget(port1_lbl, 0, 0)
-        port_layout.addWidget(port1_tac_id, 0, 1)
-        port_layout.addWidget(port2_lbl, 1, 0)
-        port_layout.addWidget(port2_tac_id, 1, 1)
-        port_layout.addWidget(port3_lbl, 2, 0)
-        port_layout.addWidget(port3_tac_id, 2, 1)
-        port_layout.addWidget(port4_lbl, 3, 0)
-        port_layout.addWidget(port4_tac_id, 3, 1)
+        self.report_btn = QPushButton("[...]")
+        self.report_btn.setFixedWidth(FILE_BTN_WIDTH)
+        self.report_btn.clicked.connect(self.set_report_location)
+        self.report_lbl = QLabel("Set report save location: ")
+        self.report_path_lbl = QLabel(self.settings.value("report_file_path"))
 
-        port_group = QGroupBox("TAC IDs")
-        port_group.setLayout(port_layout)
+        save_loc_layout = QGridLayout()
+        save_loc_layout.addWidget(self.hex_lbl, 0, 0)
+        save_loc_layout.addWidget(self.hex_btn, 0, 1)
+        save_loc_layout.addWidget(self.hex_path_lbl, 1, 0)
+        save_loc_layout.addWidget(self.report_lbl, 2, 0)
+        save_loc_layout.addWidget(self.report_btn, 2, 1)
+        save_loc_layout.addWidget(self.report_path_lbl, 3, 0)
+
+        save_loc_group = QGroupBox("Save Locations")
+        save_loc_group.setLayout(save_loc_layout)
 
         apply_btn = QPushButton("Apply Settings")
+        apply_btn.clicked.connect(self.apply_settings)
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.cancel_settings)
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(cancel_btn)
@@ -344,13 +333,13 @@ class TestUtility(QMainWindow):
         button_layout.addWidget(apply_btn)
 
         hbox_top = QHBoxLayout()
-        hbox_top.addWidget(save_loc_group)
+        hbox_top.addWidget(port_group)
         hbox_top.addWidget(iridium_group)
         hbox_top.addWidget(location_limits_group)
 
         hbox_bottom = QHBoxLayout()
         hbox_bottom.addStretch()
-        hbox_bottom.addWidget(port_group)
+        hbox_bottom.addWidget(save_loc_group)
         hbox_bottom.addStretch()
 
         grid = QGridLayout()
@@ -359,13 +348,60 @@ class TestUtility(QMainWindow):
         grid.addLayout(button_layout, 2, 0)
         grid.setHorizontalSpacing(100)
 
-        settings_widget.setLayout(grid)
-        settings_widget.setWindowTitle("D505 Configuration Settings")
-        settings_widget.show()
-        settings_widget.resize(800, 200)
+        self.settings_widget.setLayout(grid)
+        self.settings_widget.setWindowTitle("D505 Configuration Settings")
+        self.settings_widget.show()
+        self.settings_widget.resize(800, 200)
 
-    def save_settings(self):
-        pass
+    def choose_hex_file(self):
+        hex_file_path = QFileDialog.getOpenFileName(
+            self,
+            "Select hex file",
+            "",
+            "Hex File (*.hex)"
+        )[0]
+        self.hex_path_lbl.setText(hex_file_path)
+
+    def set_report_location(self):
+        report_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Select report save location"
+        )
+        self.report_path_lbl.setText(report_dir)
+
+    def cancel_settings(self):
+        self.settings_widget.close()
+
+    def apply_settings(self):
+        ports = {
+            "port1_tac_id": self.port1_tac_id,
+            "port2_tac_id": self.port2_tac_id,
+            "port3_tac_id": self.port3_tac_id,
+            "port4_tac_id": self.port4_tac_id
+        }
+
+        for key, port in ports.items():
+            p = r"([a-fA-F0-9][a-fA-F0-9]\s+){5}([a-fA-F0-9][a-fA-F0-9]\s*){1}"
+            if (re.fullmatch(p, port.text())):
+                self.settings.setValue(key, port.text())
+
+            else:
+                QMessageBox.warning(self.settings_widget,
+                                    "Warning!",
+                                    f"Bad TAC ID on Port {key[4]}!")
+                return
+
+        self.settings.setValue("iridium_imei", self.iridium_imei.text())
+        self.settings.setValue("lat_start", self.lat_start.text())
+        self.settings.setValue("lat_stop", self.lat_stop.text())
+        self.settings.setValue("lon_start", self.lon_start.text())
+        self.settings.setValue("lon_stop", self.lon_stop.text())
+        self.settings.setValue("hex_file_path", self.hex_path_lbl.text())
+        self.settings.setValue("report_file_path", self.report_path_lbl.text())
+
+        QMessageBox.information(self.settings_widget, "Information",
+                                "Settings applied!")
+        self.settings_widget.close()
 
     def closeEvent(self, event):
         event.accept()
