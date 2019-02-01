@@ -14,8 +14,9 @@ VERSION_NUM = "v0.1"
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 750
 
-ABOUT_TEXT = """
+ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2018.
+             {VERSION_NUM}
              """
 
 
@@ -53,10 +54,20 @@ class TestUtility(QMainWindow):
         self.quit.setStatusTip("Exit Program")
         self.quit.triggered.connect(self.close)
 
-        self.about = QAction("About", self)
-        self.about.setShortcut("Ctrl+A")
-        self.about.setStatusTip("About Program")
-        self.about.triggered.connect(self.about_program)
+        self.about_tu = QAction("About Test Utility", self)
+        self.about_tu.setShortcut("Ctrl+U")
+        self.about_tu.setStatusTip("About Program")
+        self.about_tu.triggered.connect(self.about_program)
+
+        self.aboutqt = QAction("About Qt", self)
+        self.aboutqt.setShortcut("Ctrl+I")
+        self.aboutqt.setStatusTip("About Qt")
+        self.aboutqt.triggered.connect(self.about_qt)
+
+        self.port = QAction("Port", self)
+        self.port.setShortcut("Ctrl+P")
+        self.port.setStatusTip("Select serial port")
+        self.port.triggered.connect(self.scan_ports)
 
         # Create menubar
         self.menubar = self.menuBar()
@@ -64,8 +75,10 @@ class TestUtility(QMainWindow):
         self.file_menu.addAction(self.config)
         self.file_menu.addAction(self.quit)
         self.serial_menu = self.menubar.addMenu("&Serial")
-        self.about_menu = self.menubar.addMenu("&About")
-        self.about_menu.addAction(self.about)
+        self.serial_menu.addAction(self.port)
+        self.help_menu = self.menubar.addMenu("&Help")
+        self.help_menu.addAction(self.about_tu)
+        self.help_menu.addAction(self.aboutqt)
 
         self.initUI()
 
@@ -149,12 +162,11 @@ class TestUtility(QMainWindow):
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
 
-    def save_location(self):
-        self.report_file_path = QFileDialog.getSaveFileName(
-            self,
-            "Choose save "
-            "location",
-            None)[0]
+    def about_qt(self):
+        QMessageBox.aboutQt(self, "About Qt")
+
+    def scan_ports(self):
+        print("Scanning serial port")
 
     def start_procedure(self):
         central_widget = QWidget()
@@ -322,6 +334,21 @@ class TestUtility(QMainWindow):
         save_loc_group = QGroupBox("Save Locations")
         save_loc_group.setLayout(save_loc_layout)
 
+        # self.theme_group = QGroupBox("Color Themes")
+
+        # self.default = QRadioButton("Default")
+        # self.dark = QRadioButton("Dark")
+        # self.light = QRadioButton("Light")
+
+        # self.default.setChecked(True)
+
+        # self.theme_layout = QVBoxLayout()
+        # self.theme_layout.addWidget(self.default)
+        # self.theme_layout.addWidget(self.dark)
+        # self.theme_layout.addWidget(self.light)
+
+        # self.theme_group.setLayout(self.theme_layout)
+
         apply_btn = QPushButton("Apply Settings")
         apply_btn.clicked.connect(self.apply_settings)
         cancel_btn = QPushButton("Cancel")
@@ -345,6 +372,7 @@ class TestUtility(QMainWindow):
         grid = QGridLayout()
         grid.addLayout(hbox_top, 0, 0)
         grid.addLayout(hbox_bottom, 1, 0)
+        # grid.addWidget(self.theme_group, 1, 1)
         grid.addLayout(button_layout, 2, 0)
         grid.setHorizontalSpacing(100)
 
