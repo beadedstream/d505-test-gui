@@ -1,12 +1,13 @@
 import re
 import D505Procedure
+import uart
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
-    QMessageBox, QAction, QFileDialog, QDialog
+    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, QEvent
 
 
 VERSION_NUM = "v0.1"
@@ -64,18 +65,24 @@ class TestUtility(QMainWindow):
         self.aboutqt.setStatusTip("About Qt")
         self.aboutqt.triggered.connect(self.about_qt)
 
-        self.port = QAction("Port", self)
-        self.port.setShortcut("Ctrl+P")
-        self.port.setStatusTip("Select serial port")
-        self.port.triggered.connect(self.scan_ports)
+        # self.connect_port = QAction("None", self)
+        # self.connect_port.setShortcut("Ctrl+K")
+        # self.connect_port.setStatusTip("Connect to serial port")
+        # self.connect_port.triggered.connect(self.connect_to_port)
+        # self.connect_port.installEventFilter(self)
 
         # Create menubar
         self.menubar = self.menuBar()
         self.file_menu = self.menubar.addMenu("&File")
         self.file_menu.addAction(self.config)
         self.file_menu.addAction(self.quit)
+
         self.serial_menu = self.menubar.addMenu("&Serial")
-        self.serial_menu.addAction(self.port)
+        self.serial_menu.installEventFilter(self)
+        self.ports = QMenu("&Ports", self)
+        # self.ports.installEventFilter(self)
+        self.serial_menu.addMenu(self.ports)
+
         self.help_menu = self.menubar.addMenu("&Help")
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
@@ -159,6 +166,48 @@ class TestUtility(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setWindowTitle("BeadedStream Manufacturing TestUtility")
 
+    def eventFilter(self, object, event):
+        if (
+            object is self.serial_menu and
+            event.type() == QEvent.MouseButtonPress and
+            event.button() == 1
+        ):
+
+            # Scan ports and create a set of the port names as strings.
+            ports = set([str(p) for p in uart.Uart.scan_ports()])
+            # Get all serial menu actions into two sets: one for string
+            # names and one for objects.
+            actions = set([a.text() for a in self.ports.actions()])
+            actions_objs = set(self.ports.actions())
+
+            # Perform set substraction to determine which ports should be
+            # added and which removed.
+            add_actions = ports - actions
+            remove_actions = actions - ports
+
+            actions_group = QActionGroup(self)
+
+            # There are no ports add a "None" action for user assurance.
+            if not len(ports) and not len(actions):
+                none = self.ports.addAction("None")
+                actions_group.addAction(none)
+
+            for port in add_actions:
+                port_action = self.ports.addAction(str(port))
+                port_action.setCheckable(True)
+                actions_group.addAction(port_action)
+
+            for action in remove_actions:
+                remove = next(filter(lambda a: a.text() == action,
+                                     actions_objs))
+                self.ports.removeAction(remove)
+            return True
+
+        else:
+            return False
+
+        return False
+
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
 
@@ -166,7 +215,11 @@ class TestUtility(QMainWindow):
         QMessageBox.aboutQt(self, "About Qt")
 
     def scan_ports(self):
-        print("Scanning serial port")
+        ports = uart.Uart.scan_ports()
+        print(ports)
+
+    def connect_to_port(self):
+        pass
 
     def start_procedure(self):
         central_widget = QWidget()

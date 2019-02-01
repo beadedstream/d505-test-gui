@@ -25,7 +25,7 @@ class Report:
             "Solar Charge Voltage": None,
             "Solar Charge Current": None,
             "Deep Sleep Current": None
-            }
+        }
         self.file_path = ""
 
     def write_data(self, data_value):
