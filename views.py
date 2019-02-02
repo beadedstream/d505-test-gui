@@ -65,12 +65,6 @@ class TestUtility(QMainWindow):
         self.aboutqt.setStatusTip("About Qt")
         self.aboutqt.triggered.connect(self.about_qt)
 
-        # self.connect_port = QAction("None", self)
-        # self.connect_port.setShortcut("Ctrl+K")
-        # self.connect_port.setStatusTip("Connect to serial port")
-        # self.connect_port.triggered.connect(self.connect_to_port)
-        # self.connect_port.installEventFilter(self)
-
         # Create menubar
         self.menubar = self.menuBar()
         self.file_menu = self.menubar.addMenu("&File")
@@ -288,7 +282,7 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        procedure = D505Procedure.D505Procedure(self)
+        procedure = D505Procedure.D505(self)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)

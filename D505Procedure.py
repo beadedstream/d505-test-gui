@@ -7,7 +7,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
 
-class D505Procedure(QWizard):
+class D505(QWizard):
 
     def __init__(self, test_utility):
         super().__init__()
@@ -17,7 +17,7 @@ class D505Procedure(QWizard):
         self.button(QWizard.FinishButton).clicked.connect(self.finish)
 
         btn_layout = [QWizard.Stretch, QWizard.BackButton, QWizard.NextButton,
-                      QWizard.FinishButton, QWizard.CustomButton1]
+                     QWizard.CustomButton1]
         self.setButtonLayout(btn_layout)
 
         self.addPage(Setup())
@@ -45,6 +45,11 @@ class D505Procedure(QWizard):
         self.test_utility.initUI()
         # DO: Generate report
 
+    def checked(lbl, chkbx):
+        if chkbx.isChecked():
+            chkbx.setEnabled(False)
+            lbl.setStyleSheet("QLabel {color: grey}")
+
 
 class Setup(QWizardPage):
     def __init__(self):
@@ -63,6 +68,8 @@ class Setup(QWizardPage):
         self.step_a_chkbx = QCheckBox()
         self.step_a_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
+        self.step_a_chkbx.clicked.connect(
+            lambda: D505.checked(self.step_a_lbl, self.step_a_chkbx))
 
         self.step_b_lbl = QLabel("Record Input voltage: ", self)
         self.step_b_lbl.setFont(self.label_font)
@@ -231,18 +238,16 @@ class CypressBLE(QWizardPage):
         self.cypress_chkbx = QCheckBox()
         self.cypress_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.cypress_chkbx.clicked.connect(lambda:
-                                           self.checked(self.cypress_lbl,
-                                                        self.cypress_chkbx))
+        self.cypress_chkbx.clicked.connect(
+            lambda: D505.checked(self.cypress_lbl, self.cypress_chkbx))
 
         self.ble_lbl = QLabel("Verify communication with Bluetooth device.")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
         self.ble_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.ble_chkbx.clicked.connect(lambda:
-                                       self.checked(self.ble_lbl,
-                                                    self.ble_chkbx))
+        self.ble_chkbx.clicked.connect(
+            lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
 
         self.bt_comm_lbl = QLabel("Very communication to 505 with "
                                   "bluetooth device")
@@ -250,9 +255,8 @@ class CypressBLE(QWizardPage):
         self.bt_comm_chkbx = QCheckBox()
         self.bt_comm_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.bt_comm_chkbx.clicked.connect(lambda:
-                                           self.checked(self.bt_comm_lbl,
-                                                        self.bt_comm_chkbx))
+        self.bt_comm_chkbx.clicked.connect(
+            lambda: D505.checked(self.bt_comm_lbl, self.bt_comm_chkbx))
 
         self.grid = QGridLayout()
         self.grid.setHorizontalSpacing(75)
@@ -286,11 +290,6 @@ class CypressBLE(QWizardPage):
         self.bt_comm_chkbx.setEnabled(True)
         self.bt_comm_chkbx.setChecked(False)
         self.bt_comm_lbl.setStyleSheet("")
-
-    def checked(self, lbl, chkbx):
-        if chkbx.isChecked():
-            chkbx.setEnabled(False)
-            lbl.setStyleSheet("QLabel {color: grey}")
 
 
 class XmegaInterfaces(QWizardPage):
@@ -328,9 +327,8 @@ class UartPower(QWizardPage):
         self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.uart_pwr_chkbx.clicked.connect(self.red_led)
-        self.uart_pwr_chkbx.clicked.connect(lambda: self.checked(
-                                            self.uart_pwr_lbl,
-                                            self.uart_pwr_chkbx))
+        self.uart_pwr_chkbx.clicked.connect(
+            lambda: D505.checked(self.uart_pwr_lbl, self.uart_pwr_chkbx))
 
         self.red_led_lbl = QLabel("Bring magnet over Hall-Effect sensor and"
                                   " verify red LED blinks")
@@ -339,9 +337,8 @@ class UartPower(QWizardPage):
         self.red_led_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.red_led_chkbx.clicked.connect(self.leds)
-        self.red_led_chkbx.clicked.connect(lambda: self.checked(
-                                           self.red_led_lbl,
-                                           self.red_led_chkbx))
+        self.red_led_chkbx.clicked.connect(
+            lambda: D505.checked(self.red_led_lbl, self.red_led_chkbx))
 
         self.leds_lbl1 = QLabel("Remove UART power connection, reconnect the"
                                 " battery & UART")
@@ -350,12 +347,10 @@ class UartPower(QWizardPage):
         self.leds_lbl1.setFont(self.label_font)
         self.leds_lbl2.setFont(self.label_font)
         self.leds_chkbx = QCheckBox()
-        self.leds_chkbx.clicked.connect(lambda: self.checked(
-                                        self.leds_lbl1,
-                                        self.leds_chkbx))
-        self.leds_chkbx.clicked.connect(lambda: self.checked(
-                                        self.leds_lbl2,
-                                        self.leds_chkbx))
+        self.leds_chkbx.clicked.connect(
+            lambda: D505.checked(self.leds_lbl1, self.leds_chkbx))
+        self.leds_chkbx.clicked.connect(
+            lambda: D505.checked(self.leds_lbl2, self.leds_chkbx))
         self.leds_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
 

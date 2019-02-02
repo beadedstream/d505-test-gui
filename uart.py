@@ -8,6 +8,15 @@ class Uart:
     def scan_ports():
         return serial.tools.list_ports.comports()
 
+    def send_command(self, command):
+        pass
+
+    def open_port(self, port):
+        pass
+
+    def close_port(self, port):
+        pass
+
 
 if __name__ == "__main__":
     ports = Uart.scan_ports()
