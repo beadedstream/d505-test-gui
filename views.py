@@ -282,13 +282,13 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        procedure = D505Procedure.D505(self)
+        self.procedure = D505Procedure.D505(self)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
         grid.setColumnStretch(1, 15)
         grid.addWidget(status_group, 0, 0)
-        grid.addWidget(procedure, 0, 1)
+        grid.addWidget(self.procedure, 0, 1)
 
         central_widget.setLayout(grid)
 

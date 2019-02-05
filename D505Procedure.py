@@ -16,8 +16,8 @@ class D505(QWizard):
         self.setButton(QWizard.CustomButton1, self.abort_btn)
         self.button(QWizard.FinishButton).clicked.connect(self.finish)
 
-        btn_layout = [QWizard.Stretch, QWizard.BackButton, QWizard.NextButton,
-                     QWizard.CustomButton1]
+        btn_layout = [QWizard.Stretch, QWizard.NextButton,
+                      QWizard.FinishButton, QWizard.CustomButton1]
         self.setButtonLayout(btn_layout)
 
         self.addPage(Setup())
