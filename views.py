@@ -448,17 +448,17 @@ class TestUtility(QMainWindow):
         self.settings_widget.close()
 
     def apply_settings(self):
-        ports = {
+        tac_ports = {
             "port1_tac_id": self.port1_tac_id,
             "port2_tac_id": self.port2_tac_id,
             "port3_tac_id": self.port3_tac_id,
             "port4_tac_id": self.port4_tac_id
         }
 
-        for key, port in ports.items():
+        for key, tac_port in tac_ports.items():
             p = r"([a-fA-F0-9][a-fA-F0-9]\s+){5}([a-fA-F0-9][a-fA-F0-9]\s*){1}"
-            if (re.fullmatch(p, port.text())):
-                self.settings.setValue(key, port.text())
+            if (re.fullmatch(p, tac_port.text())):
+                self.settings.setValue(key, tac_port.text())
 
             else:
                 QMessageBox.warning(self.settings_widget,
