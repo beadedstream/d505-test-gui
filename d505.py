@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt
 
 class D505(QWizard):
 
-    def __init__(self, test_utility):
+    def __init__(self, test_utility, model):
         super().__init__()
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)

@@ -1,6 +1,7 @@
 import re
-import D505Procedure
-import uart
+import d505
+import serialmanager
+import model
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
@@ -44,6 +45,8 @@ class TestUtility(QMainWindow):
             if not self.settings.value(key):
                 self.settings.setValue(key, settings_defaults[key])
 
+        self.sm = serialmanager.SerialManager()
+
         # Create program actions.
         self.config = QAction("Settings", self)
         self.config.setShortcut("Ctrl+E")
@@ -73,13 +76,26 @@ class TestUtility(QMainWindow):
 
         self.serial_menu = self.menubar.addMenu("&Serial")
         self.serial_menu.installEventFilter(self)
-        self.ports = QMenu("&Ports", self)
-        # self.ports.installEventFilter(self)
-        self.serial_menu.addMenu(self.ports)
+        self.ports_menu = QMenu("&Ports", self)
+        self.serial_menu.addMenu(self.ports_menu)
+        self.ports_menu.aboutToShow.connect(self.populate_ports)
+        self.ports_group = QActionGroup(self)
+        self.ports_group.triggered.connect(self.connect_port)
 
         self.help_menu = self.menubar.addMenu("&Help")
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
+        self.help_sub = QMenu("Sub", self)
+        self.help_menu.addMenu(self.help_sub)
+        a1 = QAction("Action1")
+        a2 = QAction("Action2")
+        a1.setCheckable(True)
+        a2.setCheckable(True)
+        ag = QActionGroup(self)
+        ag.addAction(a1)
+        ag.addAction(a2)
+        self.help_sub.addAction(a1)
+        self.help_sub.addAction(a2)
 
         self.initUI()
 
@@ -160,60 +176,35 @@ class TestUtility(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setWindowTitle("BeadedStream Manufacturing TestUtility")
 
-    def eventFilter(self, object, event):
-        if (
-            object is self.serial_menu and
-            event.type() == QEvent.MouseButtonPress and
-            event.button() == 1
-        ):
-
-            # Scan ports and create a set of the port names as strings.
-            ports = set([str(p) for p in uart.Uart.scan_ports()])
-            # Get all serial menu actions into two sets: one for string
-            # names and one for objects.
-            actions = set([a.text() for a in self.ports.actions()])
-            actions_objs = set(self.ports.actions())
-
-            # Perform set substraction to determine which ports should be
-            # added and which removed.
-            add_actions = ports - actions
-            remove_actions = actions - ports
-
-            actions_group = QActionGroup(self)
-
-            # There are no ports add a "None" action for user assurance.
-            if not len(ports) and not len(actions):
-                none = self.ports.addAction("None")
-                actions_group.addAction(none)
-
-            for port in add_actions:
-                port_action = self.ports.addAction(str(port))
-                port_action.setCheckable(True)
-                actions_group.addAction(port_action)
-
-            for action in remove_actions:
-                remove = next(filter(lambda a: a.text() == action,
-                                     actions_objs))
-                self.ports.removeAction(remove)
-            return True
-
-        else:
-            return False
-
-        return False
-
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
 
     def about_qt(self):
         QMessageBox.aboutQt(self, "About Qt")
 
-    def scan_ports(self):
-        ports = uart.Uart.scan_ports()
-        print(ports)
+    def populate_ports(self):
+        ports = serialmanager.SerialManager.scan_ports()
+        self.ports_menu.clear()
 
-    def connect_to_port(self):
-        pass
+        if not ports:
+            action = "None"
+            self.ports_menu.addAction(action)
+
+        for port in ports:
+            port_description = str(port)[:-6]
+            action = self.ports_menu.addAction(port_description)
+            port_name = port_description[0:4]
+            if self.sm.is_connected(port_name):
+                action.setCheckable(True)
+                action.setChecked(True)
+            self.ports_group.addAction(action)
+
+    def connect_port(self, action):
+        port_name = action.text()[0:4]
+        if (self.sm.is_connected(port_name)):
+            action.setChecked
+
+        self.sm.open_port(port_name)
 
     def start_procedure(self):
         central_widget = QWidget()
@@ -282,7 +273,9 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        self.procedure = D505Procedure.D505(self)
+        m = model.Model()
+
+        self.procedure = d505.D505(self, m)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
