@@ -18,6 +18,8 @@ class Report:
             "Input Current": [None, "mA", False],
             "2V Supply": [None, "V", False],
             "5V Supply": [None, "V", False],
+            "5V UART": [None, "V", False],
+            "UART Off": [None, "V", False],
             "Xmega Bootloader Version": [None, "", False],
             "Xmega App Version": [None, "", False],
             "ATtiny Version": [None, "", False],
@@ -64,6 +66,6 @@ class Report:
             if value[2]:
                 f.write(f"{key:<25}: {v:<20}\n")
             else:
-                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<10}\n")
+                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<20}\n")
 
         f.close()

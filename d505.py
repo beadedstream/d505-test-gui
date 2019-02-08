@@ -1,3 +1,4 @@
+import re
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
@@ -23,7 +24,7 @@ class D505(QWizard):
         self.button(QWizard.NextButton).setEnabled(False)
 
         self.addPage(Setup(model, report))
-        self.addPage(WatchDog(test_utility, serial_manager))
+        self.addPage(WatchDog(test_utility, serial_manager, model, report))
         self.addPage(OneWireMaster())
         self.addPage(CypressBLE())
         self.addPage(XmegaInterfaces())
@@ -173,6 +174,7 @@ class Setup(QWizardPage):
         self.setLayout(self.layout)
 
     def parse_values(self):
+        self.submit_button.setEnabled(False)
         limits = ["Input Voltage", "Input Current", "2V Supply"]
         values = []
         try:
@@ -185,7 +187,6 @@ class Setup(QWizardPage):
         for limit, value in zip(limits, values):
             self.report.write_data(limit, value,
                                    self.model.compare_to_limit(limit, value))
-        self.report.generate_report()
 
     def measure_values(self):
         self.is_complete = True
@@ -198,10 +199,12 @@ class WatchDog(QWizardPage):
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
 
-    def __init__(self, test_utility, serial_manager):
+    def __init__(self, test_utility, serial_manager, model, report):
         super().__init__()
 
         self.sm = serial_manager
+        self.report = report
+        self.model = model
 
         self.command_signal.connect(self.sm.send_command)
         self.sleep_signal.connect(self.sm.sleep)
@@ -292,7 +295,7 @@ class WatchDog(QWizardPage):
 
     def batch_chkbx_clicked(self):
         self.sm.data_ready.connect(self.watchdog_handler)
-        self.command_signal.emit("psoc-version")
+        self.command_signal.emit("watchdog")
 
     def watchdog_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -300,31 +303,58 @@ class WatchDog(QWizardPage):
         self.watchdog_pbar.setRange(0, 1)
         self.watchdog_pbar.setValue(1)
         print(data)
+        bl_pattern = "bootloader version .*\n"
+        app_pattern = "datalogger version .*\n"
+        try:
+            bootloader_version = re.search(bl_pattern, data).group()
+            app_version = re.search(app_pattern, data).group()
+        except AttributeError:
+            QMessageBox.warning(self, "Warning",
+                                "Error in serial data, try this step again")
+            return
+        self.report.write_data("Xmega Bootloader Version", bootloader_version,
+                               True)
+        self.report.write_data("Xmega App Version", app_version, True)
         self.command_signal.emit("5V 1")
 
     def uart_5v1_handler(self, data):
         self.sm.data_ready.disconnect()
         self.supply_5v_input.setEnabled(True)
         self.supply_5v_input_btn.setEnabled(True)
-        print(data)
 
     def user_value_handler(self):
         self.sm.data_ready.connect(self.uart_5v0_handler)
-        self.command_signal.emit("5V")
         self.supply_5v_input.setEnabled(False)
         self.supply_5v_pbar.setRange(0, 0)
+        try:
+            supply_5v_val = float(self.supply_5v_input.text())
+        except ValueError:
+            QMessageBox.warning(self, "Warning", "Bad Input Value!")
+            return
+        self.report.write_data("5V Supply", supply_5v_val,
+                               self.model.compare_to_limit("5V Supply",
+                                                           supply_5v_val))
+        self.command_signal.emit("5V")
 
     def uart_5v_handler(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.uart_5v0_handler)
-        print(data)
+        data = data.strip("\n").split("\n")
+        try:
+            uart_5v_val = float(data[1].strip("\n"))
+        except ValueError:
+            QMessageBox.warning(self, "Warning",
+                                "Error in serial data, try this step again")
+            return
+        self.report.write_data("5V UART", uart_5v_val,
+                               self.model.compare_to_limit("5V UART",
+                                                           uart_5v_val))
         self.command_signal.emit("5V 0")
 
     def uart_5v0_handler(self, data):
         self.sm.data_ready.disconnect()
         self.sm.sleep_finished.connect(self.sleep_handler)
-        print(data)
-        self.sleep_signal.emit(5)
+        self.sleep_signal.emit(10)
 
     def sleep_handler(self):
         self.sm.sleep_finished.disconnect()
@@ -337,7 +367,17 @@ class WatchDog(QWizardPage):
         self.is_complete = True
         self.supply_5v_pbar.setRange(0, 1)
         self.supply_5v_pbar.setValue(1)
-        print(data)
+        data = data.strip("\n").split("\n")
+        try:
+            uart_off_val = float(data[1].strip("\n"))
+        except ValueError:
+            QMessageBox.warning(self, "Warning",
+                                "Error in serial data, try this step again")
+            return
+        self.report.write_data("UART Off", uart_off_val,
+                               self.model.compare_to_limit("5V UART",
+                                                           uart_off_val))
+        self.report.generate_report()
 
 
 class OneWireMaster(QWizardPage):

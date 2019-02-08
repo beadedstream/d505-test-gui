@@ -62,15 +62,15 @@ class Model:
             return (value > self.limits["2v_min"] and
                     value < self.limits["2v_max"])
 
-        elif limit == "5v":
+        elif limit == "5V Supply":
+            self.internal_5v = value
             if (value > self.limits["5v_min"] and
                     value < self.limits["5v_max"]):
-                self.internal_5v = value
                 return True
             else:
                 return False
 
-        elif limit == "5v_internal":
+        elif limit == "5V UART":
             if (self.internal_5v):
                 tolerance = self.limits["5v_uart_tolerance"]
                 max_v = (1 + tolerance) * self.internal_5v
@@ -79,7 +79,7 @@ class Model:
             else:
                 raise ValueNotSet
 
-        elif limit == "5v_uart_off":
+        elif limit == "UART Off":
             return (value < self.limits["5v_uart_off"])
 
         else:
