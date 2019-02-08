@@ -50,15 +50,15 @@ class Model:
         self.ser_port = port
 
     def compare_to_limit(self, limit, value):
-        if limit == "v_input":
+        if limit == "Input Voltage":
             return (value > self.limits["v_input_min"] and
                     value < self.limits["v_input_max"])
 
-        elif limit == "i_input":
+        elif limit == "Input Current":
             return (value > self.limits["i_input_min"] and
                     value < self.limits["i_input_max"])
 
-        elif limit == "2v":
+        elif limit == "2V Supply":
             return (value > self.limits["2v_min"] and
                     value < self.limits["2v_max"])
 

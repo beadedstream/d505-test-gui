@@ -2,13 +2,15 @@ import re
 import d505
 import serialmanager
 import model
+import report
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
-    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu
+    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu,
+    QDesktopWidget
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QSettings, QEvent
+from PyQt5.QtCore import QSettings, Qt
 
 
 VERSION_NUM = "v0.1"
@@ -46,6 +48,10 @@ class TestUtility(QMainWindow):
                 self.settings.setValue(key, settings_defaults[key])
 
         self.sm = serialmanager.SerialManager()
+        self.sm.no_port_sel.connect(self.port_warning)
+
+        self.m = model.Model()
+        self.r = report.Report()
 
         # Create program actions.
         self.config = QAction("Settings", self)
@@ -118,8 +124,8 @@ class TestUtility(QMainWindow):
         self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
         self.start_btn = QPushButton("Start")
-        self.start_btn.clicked.connect(self.start_procedure)
         self.start_btn.setFixedWidth(200)
+        self.start_btn.clicked.connect(self.parse_values)
 
         self.logo_img = QPixmap("Images/h_logo.png")
         self.logo_img = self.logo_img.scaledToWidth(600)
@@ -168,13 +174,20 @@ class TestUtility(QMainWindow):
         vbox.addSpacing(50)
 
         # Put an initial message on the statusbar.
-        self.statusBar().showMessage("Set configuration settings!")
+        # self.statusBar().showMessage("Set configuration settings!")
 
         self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
-
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        self.setWindowTitle("BeadedStream Manufacturing TestUtility")
+        # self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.center()
+        # self.setWindowTitle("BeadedStream Manufacturing TestUtility")
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
@@ -189,6 +202,7 @@ class TestUtility(QMainWindow):
         if not ports:
             action = "None"
             self.ports_menu.addAction(action)
+            self.sm.close_port()
 
         for port in ports:
             port_description = str(port)[:-6]
@@ -206,7 +220,27 @@ class TestUtility(QMainWindow):
 
         self.sm.open_port(port_name)
 
+    def port_warning(self):
+        QMessageBox.warning(self, "Warning!", "No serial port selected!")
+
+    def parse_values(self):
+        tester_id = self.tester_id_input.text()
+        pcba_pn = self.pcba_pn_input.currentText()
+        pcba_sn = self.pcba_sn_input.text()
+
+        if (tester_id and pcba_pn and pcba_sn):
+            self.r.write_data("Tester ID", self.tester_id_input.text(), True)
+            self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
+            self.r.write_data("PCBA PN",
+                              self.pcba_pn_input.currentText(), True)
+        else:
+            QMessageBox.warning(self, "Warning", "Missing Value!")
+            return
+
+        self.start_procedure()
+
     def start_procedure(self):
+
         central_widget = QWidget()
 
         # _____User Inputted Values_____
@@ -273,14 +307,12 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        m = model.Model()
-
-        self.procedure = d505.D505(self, m)
+        self.procedure = d505.D505(self, self.m, self.sm, self.r)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
         grid.setColumnStretch(1, 15)
-        grid.addWidget(status_group, 0, 0)
+        grid.addWidget(status_group, 0, 0, Qt.AlignTop)
         grid.addWidget(self.procedure, 0, 1)
 
         central_widget.setLayout(grid)

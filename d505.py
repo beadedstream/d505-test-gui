@@ -4,24 +4,26 @@ from PyQt5.QtWidgets import (
     QApplication, QGroupBox
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class D505(QWizard):
 
-    def __init__(self, test_utility, model):
+    def __init__(self, test_utility, model, serial_manager, report):
         super().__init__()
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)
         self.setButton(QWizard.CustomButton1, self.abort_btn)
         self.button(QWizard.FinishButton).clicked.connect(self.finish)
 
-        btn_layout = [QWizard.Stretch, QWizard.NextButton,
-                      QWizard.FinishButton, QWizard.CustomButton1]
-        self.setButtonLayout(btn_layout)
+        qbtn_layout = [QWizard.Stretch, QWizard.NextButton,
+                       QWizard.FinishButton, QWizard.CustomButton1]
+        self.setButtonLayout(qbtn_layout)
 
-        self.addPage(Setup())
-        self.addPage(WatchDog())
+        self.button(QWizard.NextButton).setEnabled(False)
+
+        self.addPage(Setup(model, report))
+        self.addPage(WatchDog(test_utility, serial_manager))
         self.addPage(OneWireMaster())
         self.addPage(CypressBLE())
         self.addPage(XmegaInterfaces())
@@ -31,12 +33,18 @@ class D505(QWizard):
 
         self.test_utility = test_utility
 
+        self.sm = serial_manager
+        self.serial_thread = QThread()
+        self.sm.moveToThread(self.serial_thread)
+        self.serial_thread.start()
+
     def abort(self):
         msg = "Are you sure you want to cancel the test?"
         confirmation = QMessageBox.question(self, "Abort Test?", msg,
                                             QMessageBox.Yes,
                                             QMessageBox.No)
         if confirmation == QMessageBox.Yes:
+            self.serial_thread.quit()
             self.test_utility.initUI()
         else:
             pass
@@ -44,21 +52,32 @@ class D505(QWizard):
     def finish(self):
         self.test_utility.initUI()
         # DO: Generate report
+        self.serial_thread.quit()
 
     def checked(lbl, chkbx):
         if chkbx.isChecked():
             chkbx.setEnabled(False)
             lbl.setStyleSheet("QLabel {color: grey}")
 
+    def close(self):
+        self.serial_thread.quit()
+
 
 class Setup(QWizardPage):
-    def __init__(self):
+    def __init__(self, model, report):
         LINE_EDIT_WIDTH = 75
         VERT_SPACING = 25
         RIGHT_SPACING = 125
         LEFT_SPACING = 125
 
         super().__init__()
+
+        self.model = model
+        self.report = report
+
+        # Flag for tracking page completion and allowing the next button
+        # to be re-enabled.
+        self.is_complete = False
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
@@ -70,6 +89,7 @@ class Setup(QWizardPage):
                                         height: 20px}")
         self.step_a_chkbx.clicked.connect(
             lambda: D505.checked(self.step_a_lbl, self.step_a_chkbx))
+        self.step_a_chkbx.clicked.connect(self.measure_values)
 
         self.step_b_lbl = QLabel("Record Input voltage: ", self)
         self.step_b_lbl.setFont(self.label_font)
@@ -88,6 +108,16 @@ class Setup(QWizardPage):
         self.step_d_input = QLineEdit()
         self.step_d_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.step_d_unit = QLabel("V")
+
+        self.submit_button = QPushButton("Submit")
+        self.submit_button.clicked.connect(self.completeChanged)
+        self.submit_button.clicked.connect(self.parse_values)
+        self.submit_button.setFixedWidth(LINE_EDIT_WIDTH)
+
+        self.btn_layout = QHBoxLayout()
+        self.btn_layout.addStretch()
+        self.btn_layout.addWidget(self.submit_button)
+        self.btn_layout.addSpacing(RIGHT_SPACING + 5)
 
         self.step_a_layout = QHBoxLayout()
         self.step_a_layout.addSpacing(LEFT_SPACING)
@@ -129,20 +159,56 @@ class Setup(QWizardPage):
         self.layout.addLayout(self.step_c_layout)
         self.layout.addSpacing(VERT_SPACING)
         self.layout.addLayout(self.step_d_layout)
+        self.layout.addSpacing(VERT_SPACING)
+        self.layout.addLayout(self.btn_layout)
         self.layout.addStretch()
 
-        group = QGroupBox()
-        group.setLayout(self.layout)
+        # group = QGroupBox()
+        # group.setLayout(self.layout)
 
-        vbox = QVBoxLayout()
-        vbox.addWidget(group)
+        # vbox = QVBoxLayout()
+        # vbox.addWidget(group)
+        # vbox.addStretch()
 
-        self.setLayout(vbox)
+        self.setLayout(self.layout)
+
+    def parse_values(self):
+        limits = ["Input Voltage", "Input Current", "2V Supply"]
+        values = []
+        try:
+            values.append(float(self.step_b_input.text()))
+            values.append(float(self.step_c_input.text()))
+            values.append(float(self.step_d_input.text()))
+        except ValueError:
+            QMessageBox.warning(self, "Warning", "Bad input value!")
+            return
+        for limit, value in zip(limits, values):
+            self.report.write_data(limit, value,
+                                   self.model.compare_to_limit(limit, value))
+        self.report.generate_report()
+
+    def measure_values(self):
+        self.is_complete = True
+
+    def isComplete(self):
+        return self.is_complete
 
 
 class WatchDog(QWizardPage):
-    def __init__(self):
+    command_signal = pyqtSignal(str)
+    sleep_signal = pyqtSignal(int)
+
+    def __init__(self, test_utility, serial_manager):
         super().__init__()
+
+        self.sm = serial_manager
+
+        self.command_signal.connect(self.sm.send_command)
+        self.sleep_signal.connect(self.sm.sleep)
+
+        # Flag for tracking page completion and allowing the next button
+        # to be re-enabled.
+        self.is_complete = False
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
@@ -154,16 +220,29 @@ class WatchDog(QWizardPage):
         self.batch_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.batch_chkbx.clicked.connect(self.start_uart_tests)
+        self.batch_chkbx.clicked.connect(self.batch_chkbx_clicked)
+        self.batch_chkbx.clicked.connect(self.update_progressbar)
 
-        self.uart_lbl = QLabel("UART Testing in Progress")
-        self.uart_lbl.setFont(self.label_font)
-        self.uart_pbar = QProgressBar()
+        self.watchdog_lbl = QLabel("Resetting watchdog...")
+        self.watchdog_lbl.setFont(self.label_font)
+        self.watchdog_pbar = QProgressBar()
+        self.watchdog_pbar.setRange(0, 1)
 
-        self.supply_5v_lbl = QLabel("Measure and record the 5 V supply "
-                                    "(bottom side of C55):")
-        self.supply_5v_lbl.setFont(self.label_font)
+        self.supply_5v_input_lbl = QLabel("Measure and record the 5 V supply "
+                                          "(bottom side of C55):")
+        self.supply_5v_input_lbl.setFont(self.label_font)
         self.supply_5v_input = QLineEdit()
+        self.supply_5v_input.setEnabled(False)
         self.supply_5v_unit = QLabel("V")
+        self.supply_5v_unit.setFont(self.label_font)
+        self.supply_5v_input_btn = QPushButton("Submit")
+        self.supply_5v_input_btn.setEnabled(False)
+        self.supply_5v_input_btn.clicked.connect(self.user_value_handler)
+
+        self.supply_5v_lbl = QLabel("Testing supply 5v...")
+        self.supply_5v_lbl.setFont(self.label_font)
+        self.supply_5v_pbar = QProgressBar()
+        self.supply_5v_pbar.setRange(0, 1)
 
         self.batch_layout = QHBoxLayout()
         self.batch_layout.addStretch()
@@ -173,36 +252,92 @@ class WatchDog(QWizardPage):
 
         self.supply_5v_layout = QHBoxLayout()
         self.supply_5v_layout.addStretch()
-        self.supply_5v_layout.addWidget(self.supply_5v_lbl)
+        self.supply_5v_layout.addWidget(self.supply_5v_input_lbl)
         self.supply_5v_layout.addWidget(self.supply_5v_input)
         self.supply_5v_layout.addWidget(self.supply_5v_unit)
+        self.supply_5v_layout.addWidget(self.supply_5v_input_btn)
         self.supply_5v_layout.addStretch()
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
         self.layout.addLayout(self.batch_layout)
         self.layout.addStretch()
+        self.layout.addWidget(self.watchdog_lbl)
+        self.layout.addWidget(self.watchdog_pbar)
+        self.layout.addStretch()
+        self.layout.addLayout(self.supply_5v_layout)
+        self.layout.addStretch()
+        self.layout.addWidget(self.supply_5v_lbl)
+        self.layout.addSpacing(25)
+        self.layout.addWidget(self.supply_5v_pbar)
+        self.layout.addStretch()
         self.layout.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(self.layout)
 
-    def initializePage(self):
-        self.batch_chkbx.setEnabled(True)
-        self.batch_chkbx.setChecked(False)
-        self.batch_lbl.setStyleSheet("")
-        self.layout.removeWidget(self.uart_lbl)
-        self.layout.removeWidget(self.uart_pbar)
-        self.uart_lbl.hide()
-        self.uart_pbar.hide()
+    def isComplete(self):
+        return self.is_complete
 
     def start_uart_tests(self):
         if self.batch_chkbx.isChecked():
-            self.layout.insertWidget(2, self.uart_lbl)
-            self.layout.insertWidget(3, self.uart_pbar)
-            self.uart_lbl.show()
-            self.uart_pbar.show()
+            # self.layout.insertWidget(2, self.uart_lbl)
+            # self.layout.insertWidget(3, self.uart_pbar)
+            # self.uart_lbl.show()
+            # self.uart_pbar.show()
             self.batch_chkbx.setEnabled(False)
             self.batch_lbl.setStyleSheet("QLabel {color: grey}")
+
+    def update_progressbar(self):
+        self.watchdog_pbar.setRange(0, 0)
+
+    def batch_chkbx_clicked(self):
+        self.sm.data_ready.connect(self.watchdog_handler)
+        self.command_signal.emit("psoc-version")
+
+    def watchdog_handler(self, data):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.uart_5v1_handler)
+        self.watchdog_pbar.setRange(0, 1)
+        self.watchdog_pbar.setValue(1)
+        print(data)
+        self.command_signal.emit("5V 1")
+
+    def uart_5v1_handler(self, data):
+        self.sm.data_ready.disconnect()
+        self.supply_5v_input.setEnabled(True)
+        self.supply_5v_input_btn.setEnabled(True)
+        print(data)
+
+    def user_value_handler(self):
+        self.sm.data_ready.connect(self.uart_5v0_handler)
+        self.command_signal.emit("5V")
+        self.supply_5v_input.setEnabled(False)
+        self.supply_5v_pbar.setRange(0, 0)
+
+    def uart_5v_handler(self, data):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.uart_5v0_handler)
+        print(data)
+        self.command_signal.emit("5V 0")
+
+    def uart_5v0_handler(self, data):
+        self.sm.data_ready.disconnect()
+        self.sm.sleep_finished.connect(self.sleep_handler)
+        print(data)
+        self.sleep_signal.emit(5)
+
+    def sleep_handler(self):
+        self.sm.sleep_finished.disconnect()
+        self.sm.data_ready.connect(self.final_5v_handler)
+        self.command_signal.emit("5V")
+
+    def final_5v_handler(self, data):
+        self.sm.data_ready.disconnect()
+        self.supply_5v_pbar.valueChanged.connect(self.completeChanged)
+        self.is_complete = True
+        self.supply_5v_pbar.setRange(0, 1)
+        self.supply_5v_pbar.setValue(1)
+        print(data)
 
 
 class OneWireMaster(QWizardPage):
