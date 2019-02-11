@@ -1,3 +1,4 @@
+import time
 import re
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
@@ -23,13 +24,13 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        self.addPage(Setup(model, report))
-        self.addPage(WatchDog(test_utility, serial_manager, model, report))
-        self.addPage(OneWireMaster())
-        self.addPage(CypressBLE())
-        self.addPage(XmegaInterfaces())
-        self.addPage(UartPower())
-        self.addPage(DeepSleep())
+        # self.addPage(Setup(model, report))
+        # self.addPage(WatchDog(test_utility, serial_manager, model, report))
+        # self.addPage(OneWireMaster())
+        # self.addPage(CypressBLE(serial_manager, report))
+        # self.addPage(XmegaInterfaces())
+        # self.addPage(UartPower())
+        self.addPage(DeepSleep(serial_manager, model, report))
         self.addPage(FinalPage())
 
         self.test_utility = test_utility
@@ -38,6 +39,9 @@ class D505(QWizard):
         self.serial_thread = QThread()
         self.sm.moveToThread(self.serial_thread)
         self.serial_thread.start()
+
+        self.input_v = ""
+        self.input_i = ""
 
     def abort(self):
         msg = "Are you sure you want to cancel the test?"
@@ -401,8 +405,15 @@ class OneWireMaster(QWizardPage):
 
 
 class CypressBLE(QWizardPage):
-    def __init__(self):
+    command_signal = pyqtSignal(str)
+
+    def __init__(self, serial_manager, report):
         super().__init__()
+
+        self.sm = serial_manager
+        self.command_signal.connect(self.sm.send_command)
+
+        self.report = report
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
@@ -416,13 +427,14 @@ class CypressBLE(QWizardPage):
         self.cypress_chkbx.clicked.connect(
             lambda: D505.checked(self.cypress_lbl, self.cypress_chkbx))
 
-        self.ble_lbl = QLabel("Verify communication with Bluetooth device.")
-        self.ble_lbl.setFont(self.label_font)
-        self.ble_chkbx = QCheckBox()
-        self.ble_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
+        self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug/replug both UART "
+                                    "and battery).")
+        self.pwr_cycle_lbl.setFont(self.label_font)
+        self.pwr_cycle_chkbx = QCheckBox()
+        self.pwr_cycle_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.ble_chkbx.clicked.connect(
-            lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
+        self.pwr_cycle_chkbx.clicked.connect(
+            lambda: D505.checked(self.pwr_cycle_lbl, self.pwr_cycle_chkbx))
 
         self.bt_comm_lbl = QLabel("Very communication to 505 with "
                                   "bluetooth device")
@@ -432,14 +444,15 @@ class CypressBLE(QWizardPage):
                                         height: 20px}")
         self.bt_comm_chkbx.clicked.connect(
             lambda: D505.checked(self.bt_comm_lbl, self.bt_comm_chkbx))
+        self.bt_comm_chkbx.clicked.connect(self.psoc_version)
 
         self.grid = QGridLayout()
         self.grid.setHorizontalSpacing(75)
         self.grid.setVerticalSpacing(25)
         self.grid.addWidget(self.cypress_lbl, 0, 0)
         self.grid.addWidget(self.cypress_chkbx, 0, 1)
-        self.grid.addWidget(self.ble_lbl, 1, 0)
-        self.grid.addWidget(self.ble_chkbx, 1, 1)
+        self.grid.addWidget(self.pwr_cycle_lbl, 1, 0)
+        self.grid.addWidget(self.pwr_cycle_chkbx, 1, 1)
         self.grid.addWidget(self.bt_comm_lbl, 2, 0)
         self.grid.addWidget(self.bt_comm_chkbx, 2, 1)
 
@@ -455,16 +468,15 @@ class CypressBLE(QWizardPage):
 
         self.setLayout(self.layout)
 
-    def initializePage(self):
-        self.cypress_chkbx.setEnabled(True)
-        self.cypress_chkbx.setChecked(False)
-        self.cypress_lbl.setStyleSheet("")
-        self.ble_chkbx.setEnabled(True)
-        self.ble_chkbx.setChecked(False)
-        self.ble_lbl.setStyleSheet("")
-        self.bt_comm_chkbx.setEnabled(True)
-        self.bt_comm_chkbx.setChecked(False)
-        self.bt_comm_lbl.setStyleSheet("")
+    def psoc_version(self):
+        self.sm.data_ready.connect(self.parse_data)
+        self.command_signal.emit("psoc-version")
+
+    def parse_data(self, data):
+        self.sm.data_ready.disconnect()
+        formatted_data = data.strip("\n")
+        print(formatted_data)
+        self.report.write_data("BLE Version", formatted_data, True)
 
 
 class XmegaInterfaces(QWizardPage):
@@ -501,7 +513,7 @@ class UartPower(QWizardPage):
         self.uart_pwr_chkbx = QCheckBox()
         self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.uart_pwr_chkbx.clicked.connect(self.red_led)
+        # self.uart_pwr_chkbx.clicked.connect(self.red_led)
         self.uart_pwr_chkbx.clicked.connect(
             lambda: D505.checked(self.uart_pwr_lbl, self.uart_pwr_chkbx))
 
@@ -511,7 +523,7 @@ class UartPower(QWizardPage):
         self.red_led_chkbx = QCheckBox()
         self.red_led_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
-        self.red_led_chkbx.clicked.connect(self.leds)
+        # self.red_led_chkbx.clicked.connect(self.leds)
         self.red_led_chkbx.clicked.connect(
             lambda: D505.checked(self.red_led_lbl, self.red_led_chkbx))
 
@@ -534,6 +546,11 @@ class UartPower(QWizardPage):
         self.grid.setVerticalSpacing(25)
         self.grid.addWidget(self.uart_pwr_lbl, 0, 0)
         self.grid.addWidget(self.uart_pwr_chkbx, 0, 1)
+        self.grid.addWidget(self.red_led_lbl, 1, 0)
+        self.grid.addWidget(self.red_led_chkbx, 1, 1)
+        self.grid.addWidget(self.leds_lbl1, 2, 0)
+        self.grid.addWidget(self.leds_lbl2, 3, 0)
+        self.grid.addWidget(self.leds_chkbx, 3, 1)
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
@@ -542,35 +559,33 @@ class UartPower(QWizardPage):
 
         self.setLayout(self.layout)
 
-    def red_led(self):
-        self.grid.addWidget(self.red_led_lbl, 1, 0)
-        self.grid.addWidget(self.red_led_chkbx, 1, 1)
-        if self.red_led_chkbx.isChecked():
-            self.red_led.chkbx.setEnabled(False)
-            self.red_led_lbl.setStyleSheet("QLabel {color: grey}")
+    # def red_led(self):
+    #     if self.red_led_chkbx.isChecked():
+    #         self.red_led.chkbx.setEnabled(False)
+    #         self.red_led_lbl.setStyleSheet("QLabel {color: grey}")
 
-    def leds(self):
-        self.grid.addWidget(self.leds_lbl1, 2, 0)
-        self.grid.addWidget(self.leds_lbl2, 3, 0)
-        self.grid.addWidget(self.leds_chkbx, 3, 1)
-        if self.leds_chkbx.isChecked():
-            self.leds.chkbx.setEnabled(False)
-            self.leds_lbl1.setStyleSheet("QLabel {color: grey}")
-            self.leds_lbl2.setStyleSheet("QLabel {color: grey}")
-
-    def checked(self, lbl, chkbx):
-        if chkbx.isChecked():
-            chkbx.setEnabled(False)
-            lbl.setStyleSheet("QLabel {color: grey}")
+    # def leds(self):
+    #     if self.leds_chkbx.isChecked():
+    #         self.leds.chkbx.setEnabled(False)
+    #         self.leds_lbl1.setStyleSheet("QLabel {color: grey}")
+    #         self.leds_lbl2.setStyleSheet("QLabel {color: grey}")
 
 
 class DeepSleep(QWizardPage):
-    def __init__(self):
+    command_signal = pyqtSignal(str)
+
+    def __init__(self, serial_manager, model, report):
         LINE_EDIT_WIDTH = 75
         RIGHT_SPACING = 50
         LEFT_SPACING = 50
 
         super().__init__()
+
+        self.sm = serial_manager
+        self.model = model
+        self.report = report
+
+        self.command_signal.connect(self.sm.send_command)
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
@@ -585,6 +600,7 @@ class DeepSleep(QWizardPage):
         self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
+        self.ble_chkbx.clicked.connect(self.send_commands)
 
         self.input_i_lbl = QLabel("Switch current meter to uA and record input"
                                   " current")
@@ -667,6 +683,18 @@ class DeepSleep(QWizardPage):
         self.layout.addStretch()
 
         self.setLayout(self.layout)
+
+    def send_commands(self):
+        self.sm.data_ready.connect(self.receive_commands)
+        self.command_signal.emit("app 0")
+        time.sleep(0.1)
+        self.command_signal.emit("pClock-off")
+
+    def receive_commands(self, data):
+        print(data)
+
+    def parse_data(self):
+        pass
 
 
 class FinalPage(QWizardPage):

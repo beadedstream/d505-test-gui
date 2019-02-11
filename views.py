@@ -247,6 +247,8 @@ class TestUtility(QMainWindow):
         self.tester_id = self.tester_id_input.text()
         self.pcba_pn = self.pcba_pn_input.currentText()
         self.pcba_sn = self.pcba_sn_input.text()
+        self.input_v = "___"
+        self.input_i = "___"
 
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
                                  "color: black; font-size: 20px}")
@@ -255,8 +257,8 @@ class TestUtility(QMainWindow):
         self.tester_id_status = QLabel(f"Tester ID: {self.tester_id}")
         self.pcba_pn_status = QLabel(f"PCBA PN: {self.pcba_pn}")
         self.pcba_sn_status = QLabel(f"PCBA SN: {self.pcba_sn}")
-        self.input_v_status = QLabel("Input Voltage:_____V")
-        self.input_i_status = QLabel("Input Current:_____mA")
+        self.input_v_status = QLabel(f"Input Voltage: {self.input_v} V")
+        self.input_i_status = QLabel(f"Input Current: {self.input_i} mA")
         self.supply_2v_status = QLabel("2V Supply_____V")
         self.supply_5v_status = QLabel("5V Supply_____V")
         self.xmega_prog_status = QLabel("Xmega Programming:_____")
