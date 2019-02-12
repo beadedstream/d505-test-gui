@@ -1,12 +1,13 @@
 import time
 import re
+import os.path
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
-    QApplication, QGroupBox
+    QApplication
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, pyqtSignal, QThread
+from PyQt5.QtCore import Qt, pyqtSignal
 
 
 class D505(QWizard):
@@ -26,19 +27,15 @@ class D505(QWizard):
 
         # self.addPage(Setup(model, report))
         # self.addPage(WatchDog(test_utility, serial_manager, model, report))
-        # self.addPage(OneWireMaster())
+        self.addPage(OneWireMaster(test_utility, serial_manager, report))
         # self.addPage(CypressBLE(serial_manager, report))
         # self.addPage(XmegaInterfaces())
         # self.addPage(UartPower())
-        self.addPage(DeepSleep(serial_manager, model, report))
-        self.addPage(FinalPage())
+        # self.addPage(DeepSleep(serial_manager, model, report))
+        self.addPage(FinalPage(test_utility, report))
 
         self.test_utility = test_utility
-
-        self.sm = serial_manager
-        self.serial_thread = QThread()
-        self.sm.moveToThread(self.serial_thread)
-        self.serial_thread.start()
+        self.report = report
 
         self.input_v = ""
         self.input_i = ""
@@ -49,23 +46,22 @@ class D505(QWizard):
                                             QMessageBox.Yes,
                                             QMessageBox.No)
         if confirmation == QMessageBox.Yes:
-            self.serial_thread.quit()
+            # self.serial_thread.quit()
+            # self.serial_thread.wait()
             self.test_utility.initUI()
         else:
             pass
 
     def finish(self):
         self.test_utility.initUI()
-        # DO: Generate report
-        self.serial_thread.quit()
+        report_file_path = self.test_utility.settings.value("report_file_path")
+        self.report.set_file_location(report_file_path)
+        self.report.generate_report()
 
     def checked(lbl, chkbx):
         if chkbx.isChecked():
             chkbx.setEnabled(False)
             lbl.setStyleSheet("QLabel {color: grey}")
-
-    def close(self):
-        self.serial_thread.quit()
 
 
 class Setup(QWizardPage):
@@ -178,13 +174,13 @@ class Setup(QWizardPage):
         self.setLayout(self.layout)
 
     def parse_values(self):
-        self.submit_button.setEnabled(False)
         limits = ["Input Voltage", "Input Current", "2V Supply"]
         values = []
         try:
             values.append(float(self.step_b_input.text()))
             values.append(float(self.step_c_input.text()))
             values.append(float(self.step_d_input.text()))
+            self.submit_button.setEnabled(False)
         except ValueError:
             QMessageBox.warning(self, "Warning", "Bad input value!")
             return
@@ -299,7 +295,7 @@ class WatchDog(QWizardPage):
 
     def batch_chkbx_clicked(self):
         self.sm.data_ready.connect(self.watchdog_handler)
-        self.command_signal.emit("watchdog")
+        self.command_signal.emit("watchdog\r")
 
     def watchdog_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -319,7 +315,7 @@ class WatchDog(QWizardPage):
         self.report.write_data("Xmega Bootloader Version", bootloader_version,
                                True)
         self.report.write_data("Xmega App Version", app_version, True)
-        self.command_signal.emit("5V 1")
+        self.command_signal.emit("5V 1\r")
 
     def uart_5v1_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -338,7 +334,7 @@ class WatchDog(QWizardPage):
         self.report.write_data("5V Supply", supply_5v_val,
                                self.model.compare_to_limit("5V Supply",
                                                            supply_5v_val))
-        self.command_signal.emit("5V")
+        self.command_signal.emit("5V\r")
 
     def uart_5v_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -353,7 +349,7 @@ class WatchDog(QWizardPage):
         self.report.write_data("5V UART", uart_5v_val,
                                self.model.compare_to_limit("5V UART",
                                                            uart_5v_val))
-        self.command_signal.emit("5V 0")
+        self.command_signal.emit("5V 0\r")
 
     def uart_5v0_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -363,7 +359,7 @@ class WatchDog(QWizardPage):
     def sleep_handler(self):
         self.sm.sleep_finished.disconnect()
         self.sm.data_ready.connect(self.final_5v_handler)
-        self.command_signal.emit("5V")
+        self.command_signal.emit("5V\r")
 
     def final_5v_handler(self, data):
         self.sm.data_ready.disconnect()
@@ -381,27 +377,98 @@ class WatchDog(QWizardPage):
         self.report.write_data("UART Off", uart_off_val,
                                self.model.compare_to_limit("5V UART",
                                                            uart_off_val))
-        self.report.generate_report()
 
 
 class OneWireMaster(QWizardPage):
-    def __init__(self):
+    command_signal = pyqtSignal(str)
+    reprogram_signal = pyqtSignal()
+    file_write_signal = pyqtSignal(str)
+    one_wire_test_signal = pyqtSignal()
+
+    def __init__(self, test_utility, serial_manager, report):
         super().__init__()
+
+        self.test_utility = test_utility
+        self.sm = serial_manager
+        self.report = report
+
+        self.pbar_value = 0
+
+        self.command_signal.connect(self.sm.send_command)
+        self.file_write_signal.connect(self.sm.write_hex_file)
+        self.reprogram_signal.connect(self.sm.reprogram_one_wire)
+        self.one_wire_test_signal.connect(self.sm.one_wire_test)
+        self.sm.data_ready.connect(self.send_hex_file)
+        self.sm.line_written.connect(self.update_pbar)
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.one_wire_lbl = QLabel("Programming 1-wire master. . .")
+        self.start_programming_btn = QPushButton("Start Reprogramming")
+        self.start_programming_btn.clicked.connect(self.reprogram)
+        self.start_programming_btn.setMaximumWidth(200)
+
+        self.one_wire_lbl = QLabel()
         self.one_wire_lbl.setFont(self.label_font)
         self.one_wire_pbar = QProgressBar()
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
+        self.layout.addWidget(self.start_programming_btn)
+        self.layout.addSpacing(50)
         self.layout.addWidget(self.one_wire_lbl)
         self.layout.addWidget(self.one_wire_pbar)
         self.layout.addStretch()
 
         self.setLayout(self.layout)
+
+    def reprogram(self):
+        self.one_wire_pbar.setRange(0, 0)
+        self.reprogram_signal.emit()
+        self.one_wire_lbl.setText("Erasing flash. . .")
+
+    def send_hex_file(self, data):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.data_parser)
+        self.one_wire_pbar.setRange(0, 545)
+        print(data)
+        # Check for response from board before proceeding
+        pattern = "download hex records now..."
+        if (re.search(pattern, data)):
+            hex_file_path = self.test_utility.settings.value("hex_file_path")
+            if (os.path.isfile(hex_file_path)):
+                self.one_wire_lbl.setText("Programming 1-wire master. . .")
+                self.file_write_signal.emit(hex_file_path)
+            else:
+                QMessageBox.warning(self, "No hex file set or bad file path.")
+        else:
+            QMessageBox.warning(self, "Warning1", "Bad command response.")
+
+    def update_pbar(self):
+        self.pbar_value += 1
+        self.one_wire_pbar.setValue(self.pbar_value)
+
+    def data_parser(self, data):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.record_version)
+        print(data)
+        pattern = "lock bits set"
+        if (re.search(pattern, data)):
+            self.one_wire_lbl.setText("Programming complete.")
+            self.one_wire_test_signal.emit()
+        else:
+            QMessageBox.warning(self, "Warning2", "Bad command response.")
+
+    def record_version(self, data):
+        print(f"Data received: {data}")
+        pattern = "1WireMaster .*\n"
+        at_version = re.search(pattern, data)
+        if (at_version):
+            self.report.write_data("ATtiny Version", at_version.group(), True)
+            self.one_wire_lbl.setText("Version recorded.")
+        else:
+            self.report.write_data("ATtiny Version", "N/A", False)
+            QMessageBox.warning(self, "Warning3", "Bad command response.")
 
 
 class CypressBLE(QWizardPage):
@@ -418,7 +485,7 @@ class CypressBLE(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.cypress_lbl = QLabel("Run the Cypress programming utility to"
+        self.cypress_lbl = QLabel("Run the Cypress programming utility to "
                                   "program the CYBLE-224116 BLE module.")
         self.cypress_lbl.setFont(self.label_font)
         self.cypress_chkbx = QCheckBox()
@@ -474,9 +541,13 @@ class CypressBLE(QWizardPage):
 
     def parse_data(self, data):
         self.sm.data_ready.disconnect()
-        formatted_data = data.strip("\n")
-        print(formatted_data)
-        self.report.write_data("BLE Version", formatted_data, True)
+        pattern = "([0-9)+.([0-9])+.([0-9])+"
+        version = re.search(pattern, data)
+        if (version):
+            print(version.group())
+            self.report.write_data("BLE Version", version.group(), True)
+        else:
+            QMessageBox.warning(self, "Warning3", "Bad command response.")
 
 
 class XmegaInterfaces(QWizardPage):
@@ -558,17 +629,6 @@ class UartPower(QWizardPage):
         self.layout.addStretch()
 
         self.setLayout(self.layout)
-
-    # def red_led(self):
-    #     if self.red_led_chkbx.isChecked():
-    #         self.red_led.chkbx.setEnabled(False)
-    #         self.red_led_lbl.setStyleSheet("QLabel {color: grey}")
-
-    # def leds(self):
-    #     if self.leds_chkbx.isChecked():
-    #         self.leds.chkbx.setEnabled(False)
-    #         self.leds_lbl1.setStyleSheet("QLabel {color: grey}")
-    #         self.leds_lbl2.setStyleSheet("QLabel {color: grey}")
 
 
 class DeepSleep(QWizardPage):
@@ -698,17 +758,20 @@ class DeepSleep(QWizardPage):
 
 
 class FinalPage(QWizardPage):
-    def __init__(self):
+    def __init__(self, test_utility, report):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
         super().__init__()
 
+        self.test_utility = test_utility
+        self.report = report
+
         # Placeholder until logic is built in
         self.test_status = "Successful"
         self.test_status_labl = QLabel(f"Test {self.test_status}!")
         self.test_status_labl.setFont(self.label_font)
-        self.break_down_lbl = QLabel("Remove power and disconect all"
+        self.break_down_lbl = QLabel("Remove power and disconnect all"
                                      " peripherals from DUT")
         self.break_down_lbl.setFont(self.label_font)
 

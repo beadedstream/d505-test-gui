@@ -8,6 +8,7 @@ class SerialManager(QObject):
     data_ready = pyqtSignal(str)
     no_port_sel = pyqtSignal()
     sleep_finished = pyqtSignal()
+    line_written = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -21,8 +22,58 @@ class SerialManager(QObject):
     @pyqtSlot(str)
     def send_command(self, command):
         if self.ser.is_open:
-            self.ser.write((command + "\r").encode())
+            self.ser.write(command.encode())
             data = self.ser.read_until(b"\r\n>").decode()
+            self.data_ready.emit(data)
+        else:
+            self.no_port_sel.emit()
+
+    @pyqtSlot()
+    def one_wire_test(self):
+        if self.ser.is_open:
+            self.ser.write("1-wire-test\r".encode())
+            # self.ser.read(self.ser.in_waiting)
+            data = self.ser.read_until(b"\r\n>").decode()
+            self.ser.write(" ".encode())
+            self.ser.write(".".encode())
+            time.sleep(0.010)
+            data = self.ser.read_until(b"\r\n>").decode()
+            self.data_ready.emit(data)
+        else:
+            self.no_port_sel.emit()
+
+    @pyqtSlot()
+    def reprogram_one_wire(self):
+        if self.ser.is_open:
+            self.ser.write("reprogram-1-wire-master\r".encode())
+            # Wait for serial buffer to fill
+            time.sleep(5)
+            num_bytes = self.ser.in_waiting
+            data = self.ser.read(num_bytes).decode()
+            self.data_ready.emit(data)
+        else:
+            self.no_port_sel.emit()
+
+    @pyqtSlot(str)
+    def write_hex_file(self, file_path):
+        if self.ser.is_open:
+            try:
+                with open(file_path, "rb") as f:
+                    for line in f:
+                        # hex_data = bytes.fromhex(line.strip("\n").strip(":"))
+                        # print(hex_data)
+                        self.ser.write(line)
+                        self.line_written.emit()
+                        # 50 ms delay required after each line
+                        time.sleep(0.060)
+            except SyntaxError:
+                print("Syntax Error")
+
+            time.sleep(3)
+            data = self.ser.read_until(b"\r\n>").decode()
+            # num_bytes = self.ser.in_waiting
+            # print(num_bytes)
+            # data = self.ser.read(num_bytes).decode()
             self.data_ready.emit(data)
         else:
             self.no_port_sel.emit()
@@ -40,17 +91,9 @@ class SerialManager(QObject):
         self.ser = serial.Serial(port, 115200, timeout=90,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
-
-        # self.ser.open()
+        # Flush buffers
+        self.ser.reset_output_buffer()
+        self.ser.reset_input_buffer()
 
     def close_port(self):
         self.ser.close()
-
-
-if __name__ == "__main__":
-    sm = SerialManager()
-    sm.open_port("COM4")
-    print(sm.send_command("psoc-version"))
-    print(sm.send_command("spot-read"))
-    print(sm.send_command("watchdog"))
-    sm.close_port()

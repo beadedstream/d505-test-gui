@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDesktopWidget
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtCore import QSettings, Qt, QThread
 
 
 VERSION_NUM = "v0.1"
@@ -48,7 +48,10 @@ class TestUtility(QMainWindow):
                 self.settings.setValue(key, settings_defaults[key])
 
         self.sm = serialmanager.SerialManager()
+        self.serial_thread = QThread()
+        self.sm.moveToThread(self.serial_thread)
         self.sm.no_port_sel.connect(self.port_warning)
+        self.serial_thread.start()
 
         self.m = model.Model()
         self.r = report.Report()
