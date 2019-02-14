@@ -13,23 +13,16 @@ class Report:
             "PCBA PN": [None, "", False],
             "PCBA SN": [None, "", False],
             "Tester ID": [None, "", False],
-            "Test Result": [None, "", False],
+            "Test Result": ["PASS", "", True],
             "Input Voltage": [None, "V", False],
             "Input Current": [None, "mA", False],
             "2V Supply": [None, "V", False],
             "5V Supply": [None, "V", False],
-            "5V UART": [None, "V", False],
-            "UART Off": [None, "V", False],
             "Xmega Bootloader Version": [None, "", False],
             "Xmega App Version": [None, "", False],
             "ATtiny Version": [None, "", False],
             "BLE Version": [None, "", False],
             "Temp ID": [None, "", False],
-            "Serial Match": [None, "", False],
-            "Bat V": [None, "V", False],
-            "Iridium IMEI Match": [None, "", False],
-            "Valid Board ID": [None, "", False],
-            "Snow Depth": [None, "", False],
             "Solar Charge Voltage": [None, "V", False],
             "Solar Charge Current": [None, "mA", False],
             "Deep Sleep Current": [None, "uA", False]
@@ -38,16 +31,17 @@ class Report:
 
     def write_data(self, data_key, data_value, passed):
         """Updates the data model with the received value and a bool
-        indicating if the test passed or not.
+        indicating if the test passed or not. If the test failed and isn't
+        already in the list of data, include it.
         """
-        if data_key in self.data:
+        if (data_key in self.data or not passed):
             self.data[data_key][0] = data_value
             self.data[data_key][2] = passed
-            return True
-        return False
+        if (not passed):
+            self.data["Test Result"] = ["FAIL", "", False]
 
     def set_file_location(self, file_path):
-        """Sets the file path for the report."""
+        """Sets the file path for the report's save location."""
         self.file_path = file_path
 
     def generate_report(self):

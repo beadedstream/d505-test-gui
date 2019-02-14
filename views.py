@@ -56,6 +56,12 @@ class TestUtility(QMainWindow):
         self.m = model.Model()
         self.r = report.Report()
 
+        # Part number : [serial prefix, procedure class]
+        self.product_data = {
+            "45321-03": ["D505", d505.D505],
+            "45320-02": ["D505", d505.D505]
+        }
+
         # Create program actions.
         self.config = QAction("Settings", self)
         self.config.setShortcut("Ctrl+E")
@@ -217,21 +223,21 @@ class TestUtility(QMainWindow):
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
 
     def parse_values(self):
-        tester_id = self.tester_id_input.text()
-        pcba_pn = self.pcba_pn_input.currentText()
-        pcba_sn = self.pcba_sn_input.text()
+        self.tester_id = self.tester_id_input.text()
+        self.pcba_pn = self.pcba_pn_input.currentText()
+        self.pcba_sn = self.pcba_sn_input.text()
 
-        if not pcba_sn[0:4] == "D505":
-            QMessageBox.warning(self, "Warning", "Bad serial number!")
-            return
-
-        if (tester_id and pcba_pn and pcba_sn):
+        if (self.tester_id and self.pcba_pn and self.pcba_sn):
             self.r.write_data("Tester ID", self.tester_id_input.text(), True)
             self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
             self.r.write_data("PCBA PN",
                               self.pcba_pn_input.currentText(), True)
         else:
             QMessageBox.warning(self, "Warning", "Missing Value!")
+            return
+
+        if not self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0]:
+            QMessageBox.warning(self, "Warning", "Bad serial number!")
             return
 
         self.start_procedure()
@@ -241,9 +247,9 @@ class TestUtility(QMainWindow):
         central_widget = QWidget()
 
         # _____User Inputted Values_____
-        self.tester_id = self.tester_id_input.text()
-        self.pcba_pn = self.pcba_pn_input.currentText()
-        self.pcba_sn = self.pcba_sn_input.text()
+        # self.tester_id = self.tester_id_input.text()
+        # self.pcba_pn = self.pcba_pn_input.currentText()
+        # self.pcba_sn = self.pcba_sn_input.text()
 
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
                                  "color: black; font-size: 20px}")
@@ -312,7 +318,11 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        self.procedure = d505.D505(self, self.m, self.sm, self.r)
+        # Use the product data dictionary to call the procdure class that
+        # corresponds to the part number. Create an instance of it passing it
+        # the instances of test_utility, model, serial_manager and report.
+        self.procedure = self.product_data[self.pcba_pn][1](self, self.m,
+                                                            self.sm, self.r)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
