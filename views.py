@@ -94,17 +94,6 @@ class TestUtility(QMainWindow):
         self.help_menu = self.menubar.addMenu("&Help")
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
-        self.help_sub = QMenu("Sub", self)
-        self.help_menu.addMenu(self.help_sub)
-        a1 = QAction("Action1")
-        a2 = QAction("Action2")
-        a1.setCheckable(True)
-        a2.setCheckable(True)
-        ag = QActionGroup(self)
-        ag.addAction(a1)
-        ag.addAction(a2)
-        self.help_sub.addAction(a1)
-        self.help_sub.addAction(a2)
 
         self.initUI()
 
@@ -123,10 +112,11 @@ class TestUtility(QMainWindow):
         self.pcba_sn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
         self.pcba_pn_input = QComboBox()
-        self.pcba_pn_input.addItem("D505")
+        self.pcba_pn_input.addItem("45321-03")
+        self.pcba_pn_input.addItem("45320-02")
         self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
-        self.start_btn = QPushButton("Start")
+        self.start_btn = QPushButton("Start", default=True)
         self.start_btn.setFixedWidth(200)
         self.start_btn.clicked.connect(self.parse_values)
 
@@ -231,6 +221,10 @@ class TestUtility(QMainWindow):
         pcba_pn = self.pcba_pn_input.currentText()
         pcba_sn = self.pcba_sn_input.text()
 
+        if not pcba_sn[0:4] == "D505":
+            QMessageBox.warning(self, "Warning", "Bad serial number!")
+            return
+
         if (tester_id and pcba_pn and pcba_sn):
             self.r.write_data("Tester ID", self.tester_id_input.text(), True)
             self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
@@ -250,40 +244,44 @@ class TestUtility(QMainWindow):
         self.tester_id = self.tester_id_input.text()
         self.pcba_pn = self.pcba_pn_input.currentText()
         self.pcba_sn = self.pcba_sn_input.text()
-        self.input_v = "___"
-        self.input_i = "___"
 
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
                                  "color: black; font-size: 20px}")
+        status_style_pass = """QLabel {background: #8cff66;
+                                border: 2px solid grey; font-size: 20px}"""
 
         # ______Labels______
         self.tester_id_status = QLabel(f"Tester ID: {self.tester_id}")
         self.pcba_pn_status = QLabel(f"PCBA PN: {self.pcba_pn}")
         self.pcba_sn_status = QLabel(f"PCBA SN: {self.pcba_sn}")
-        self.input_v_status = QLabel(f"Input Voltage: {self.input_v} V")
-        self.input_i_status = QLabel(f"Input Current: {self.input_i} mA")
-        self.supply_2v_status = QLabel("2V Supply_____V")
-        self.supply_5v_status = QLabel("5V Supply_____V")
+        self.input_v_status = QLabel(f"Input Voltage: _____ V")
+        self.input_i_status = QLabel(f"Input Current: _____ mA")
+        self.supply_2v_status = QLabel("2V Supply: _____V")
+        self.supply_5v_status = QLabel("5V Supply: _____V")
+        self.uart_5v_status = QLabel("5V UART: _____ V")
+        self.uart_off_status = QLabel("UART Off: _____ V")
         self.xmega_prog_status = QLabel("Xmega Programming:_____")
-        self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
+        self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
         self.led_test_status = QLabel("LED Test:_____")
         self.solar_charge_v_status = QLabel("Solar Charge Voltage:_____V")
         self.solar_charge_i_status = QLabel("Solar Charge Current:_____mA")
         self.deep_sleep_i_status = QLabel("Deep Sleep Current:_____uA")
 
-        self.tester_id_status.setStyleSheet(status_lbl_stylesheet)
-        self.pcba_pn_status.setStyleSheet(status_lbl_stylesheet)
-        self.pcba_sn_status.setStyleSheet(status_lbl_stylesheet)
+        self.tester_id_status.setStyleSheet(status_style_pass)
+        self.pcba_pn_status.setStyleSheet(status_style_pass)
+        self.pcba_sn_status.setStyleSheet(status_style_pass)
         self.input_v_status.setStyleSheet(status_lbl_stylesheet)
         self.input_i_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_2v_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_5v_status.setStyleSheet(status_lbl_stylesheet)
+        self.uart_5v_status.setStyleSheet(status_lbl_stylesheet)
+        self.uart_off_status.setStyleSheet(status_lbl_stylesheet)
         self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
-        self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
+        self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
         self.led_test_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_v_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_i_status.setStyleSheet(status_lbl_stylesheet)
@@ -299,10 +297,12 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.input_i_status)
         status_vbox1.addWidget(self.supply_2v_status)
         status_vbox1.addWidget(self.supply_5v_status)
+        status_vbox1.addWidget(self.uart_5v_status)
+        status_vbox1.addWidget(self.uart_off_status)
         status_vbox1.addWidget(self.xmega_prog_status)
-        status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
+        status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.led_test_status)
         status_vbox1.addWidget(self.solar_charge_v_status)
         status_vbox1.addWidget(self.solar_charge_i_status)

@@ -25,6 +25,11 @@ class Report:
             "ATtiny Version": [None, "", False],
             "BLE Version": [None, "", False],
             "Temp ID": [None, "", False],
+            "Serial Match": [None, "", False],
+            "Bat V": [None, "V", False],
+            "Iridium IMEI Match": [None, "", False],
+            "Valid Board ID": [None, "", False],
+            "Snow Depth": [None, "", False],
             "Solar Charge Voltage": [None, "V", False],
             "Solar Charge Current": [None, "mA", False],
             "Deep Sleep Current": [None, "uA", False]
@@ -66,6 +71,6 @@ class Report:
             if value[2]:
                 f.write(f"{key:<25}: {v:<20}\n")
             else:
-                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<20}\n")
+                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<30}\n")
 
         f.close()

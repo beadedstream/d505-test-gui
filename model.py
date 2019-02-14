@@ -21,7 +21,8 @@ class Model:
             "5v_min": 4.90,
             "5v_max": 5.10,
             "5v_uart_tolerance": 0.02,
-            "5v_uart_off": 0.3
+            "5v_uart_off": 0.3,
+            "bat_v_tolerance": 0.10
         }
         self.tac = {
             "tac1": None,
@@ -35,6 +36,7 @@ class Model:
         }
         self.ser_port = None
         self.internal_5v = None
+        self.input_v = None
 
     def snow_depth(self, s):
         p = r"([0-9]){1,4}(\scm)"
@@ -51,6 +53,7 @@ class Model:
 
     def compare_to_limit(self, limit, value):
         if limit == "Input Voltage":
+            self.input_v = value
             return (value > self.limits["v_input_min"] and
                     value < self.limits["v_input_max"])
 
@@ -81,6 +84,15 @@ class Model:
 
         elif limit == "UART Off":
             return (value < self.limits["5v_uart_off"])
+
+        elif limit == "Bat V":
+            if (self.input_v):
+                tolerance = self.limits["bat_v_tolerance"]
+                max_v = (1 + tolerance) * self.input_v
+                min_v = (1 - tolerance) * self.input_v
+                return (value < max_v and value > min_v)
+            else:
+                raise ValueNotSet
 
         else:
             raise InvalidLimit

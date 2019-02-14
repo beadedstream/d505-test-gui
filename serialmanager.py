@@ -12,7 +12,7 @@ class SerialManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.ser = serial.Serial(None, 115200, timeout=90,
+        self.ser = serial.Serial(None, 115200, timeout=30,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
 
@@ -22,8 +22,9 @@ class SerialManager(QObject):
     @pyqtSlot(str)
     def send_command(self, command):
         if self.ser.is_open:
+            self.flush_buffers()
             self.ser.write(command.encode())
-            data = self.ser.read_until(b"\r\n>").decode()
+            data = self.ser.read_until(b"\r\n> ").decode()
             self.data_ready.emit(data)
         else:
             self.no_port_sel.emit()
@@ -32,12 +33,12 @@ class SerialManager(QObject):
     def one_wire_test(self):
         if self.ser.is_open:
             self.ser.write("1-wire-test\r".encode())
-            # self.ser.read(self.ser.in_waiting)
-            data = self.ser.read_until(b"\r\n>").decode()
+            time.sleep(1)
             self.ser.write(" ".encode())
+            time.sleep(0.3)
             self.ser.write(".".encode())
-            time.sleep(0.010)
-            data = self.ser.read_until(b"\r\n>").decode()
+            # self.ser.read(self.ser.in_waiting)
+            data = self.ser.read_until(b"\r\n> ").decode()
             self.data_ready.emit(data)
         else:
             self.no_port_sel.emit()
@@ -45,7 +46,7 @@ class SerialManager(QObject):
     @pyqtSlot()
     def reprogram_one_wire(self):
         if self.ser.is_open:
-            self.ser.write("reprogram-1-wire-master\r".encode())
+            self.ser.write("reprogram-1-wire-master\r\n".encode())
             # Wait for serial buffer to fill
             time.sleep(5)
             num_bytes = self.ser.in_waiting
@@ -70,7 +71,7 @@ class SerialManager(QObject):
                 print("Syntax Error")
 
             time.sleep(3)
-            data = self.ser.read_until(b"\r\n>").decode()
+            data = self.ser.read_until(b"\r\n> ").decode()
             # num_bytes = self.ser.in_waiting
             # print(num_bytes)
             # data = self.ser.read(num_bytes).decode()
@@ -91,7 +92,11 @@ class SerialManager(QObject):
         self.ser = serial.Serial(port, 115200, timeout=90,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
-        # Flush buffers
+
+    def flush_buffers(self):
+        self.ser.write("\r\n".encode())
+        time.sleep(1)
+        self.ser.read(self.ser.in_waiting)
         self.ser.reset_output_buffer()
         self.ser.reset_input_buffer()
 
