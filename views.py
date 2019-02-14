@@ -15,8 +15,8 @@ from PyQt5.QtCore import QSettings, Qt, QThread
 
 VERSION_NUM = "v0.1"
 
-WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 750
+WINDOW_WIDTH = 1300
+WINDOW_HEIGHT = 975
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2018.
@@ -160,7 +160,7 @@ class TestUtility(QMainWindow):
         hbox_start_btn.addSpacing(RIGHT_SPACING)
 
         vbox = QVBoxLayout()
-        vbox.addSpacing(50)
+        vbox.addStretch()
         vbox.addLayout(hbox_logo)
         vbox.addSpacing(50)
         vbox.addLayout(hbox_test_id)
@@ -170,7 +170,7 @@ class TestUtility(QMainWindow):
         vbox.addLayout(hbox_sn)
         vbox.addSpacing(50)
         vbox.addLayout(hbox_start_btn)
-        vbox.addSpacing(50)
+        vbox.addStretch()
 
         # Put an initial message on the statusbar.
         # self.statusBar().showMessage("Set configuration settings!")
