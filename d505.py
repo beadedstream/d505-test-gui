@@ -34,10 +34,10 @@ class D505(QWizard):
         #                       report))
         # self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
         # self.addPage(CypressBLE(test_utility, serial_manager, report))
-        self.addPage(XmegaInterfaces(test_utility, serial_manager, model,
-                                     report))
+        # self.addPage(XmegaInterfaces(test_utility, serial_manager, model,
+        #                              report))
         # self.addPage(UartPower(test_utility, serial_manager, report))
-        self.addPage(DeepSleep(test_utility, serial_manager, report))
+        self.addPage(DeepSleep(test_utility, serial_manager, model, report))
         self.addPage(FinalPage(test_utility, report))
 
         self.tu = test_utility
@@ -764,19 +764,19 @@ class XmegaInterfaces(QWizardPage):
 
     def spot_read(self, data):
         self.sm.data_ready.disconnect()
-        # pattern = ("(PORT [0-9], TAC\sID ([a-xA-F0-9][a-xA-F0-9] +){5}"
-        #            "([a-xA-F0-9][a-xA-F0-9] *){1})")
-        # matches = re.findall(pattern, data)
-        # if (matches):
-        #     # Search pattern returns a list of tuples where the first value
-        #     # of each tuple is our target.
-        #     port = 1
-        #     for match in matches:
-        #         if match[0] == self.tu.settings.value(f"port{port}_tac_id"):
-        #             pass
-        #         else:
-        #             pass
-        #         port += 1
+        pattern = ("(PORT [0-9], TAC\sID ([a-xA-F0-9][a-xA-F0-9] +){5}"
+                   "([a-xA-F0-9][a-xA-F0-9] *){1})")
+        matches = re.findall(pattern, data)
+        if (matches):
+            # Search pattern returns a list of tuples where the first value
+            # of each tuple is our target.
+            port = 1
+            for match in matches:
+                if match[0] == self.tu.settings.value(f"port{port}_tac_id"):
+                    pass
+                else:
+                    pass
+                port += 1
 
         #     port1 = matches[0][0]
         #     port2 = matches[1][0]
@@ -903,7 +903,7 @@ class DeepSleep(QWizardPage):
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
-    def __init__(self, test_utility, serial_manager, report):
+    def __init__(self, test_utility, serial_manager, model, report):
         LINE_EDIT_WIDTH = 75
         RIGHT_SPACING = 50
         LEFT_SPACING = 50
@@ -912,6 +912,7 @@ class DeepSleep(QWizardPage):
 
         self.tu = test_utility
         self.sm = serial_manager
+        self.model = model
         self.report = report
 
         self.system_font = QApplication.font().family()
@@ -1038,27 +1039,46 @@ class DeepSleep(QWizardPage):
 
     def parse_data(self):
         try:
-            input_i = float(self.input_i_input.text())
+            deep_sleep_i = float(self.input_i_input.text())
             solar_v = float(self.solar_v_input.text())
             solar_i = float(self.solar_i_input.text())
         except ValueError:
             QMessageBox.warning(self, "Warning", "Bad Input Value!")
             return
-        self.report.write_data("Deep Sleep Current", input_i, True)
-        self.report.write_data("Solar Charge Voltage", solar_v, True)
-        self.report.write_data("Solar Charge Current", solar_i, True)
 
+        deep_sleep_i_pass = self.model.compare_to_limit("Deep Sleep Current",
+                                                        deep_sleep_i)
+        solar_i_pass = self.model.compare_to_limit("Solar Current",
+                                                   solar_i)
+
+        self.report.write_data("Deep Sleep Current", deep_sleep_i,
+                               deep_sleep_i_pass)
+        self.report.write_data("Solar Charge Voltage", solar_v, True)
+        self.report.write_data("Solar Charge Current", solar_i, solar_i_pass)
+
+        # Set status text values
         self.tu.deep_sleep_i_status.setText(
-            f"Deep Sleep Current: {input_i} uA")
-        self.tu.deep_sleep_i_status.setStyleSheet(
-            D505.status_style_pass)
-        self.tu.solar_charge_v_status.setText(
-            f"Solar Charge Voltage: {solar_v} V")
-        self.tu.solar_charge_v_status.setStyleSheet(
-            D505.status_style_pass)
+            f"Deep Sleep Current: {deep_sleep_i} uA")
         self.tu.solar_charge_i_status.setText(
             f"Solar Charge Current: {solar_i} mA")
-        self.tu.solar_charge_i_status.setStyleSheet(
+        self.tu.solar_charge_v_status.setText(
+            f"Solar Charge Voltage: {solar_v} V")
+
+        if deep_sleep_i_pass:
+            self.tu.deep_sleep_i_status.setStyleSheet(
+                D505.status_style_pass)
+        else:
+            self.tu.deep_sleep_i_status.setStyleSheet(
+                D505.status_style_fail)
+
+        if solar_i_pass:
+            self.tu.solar_charge_i_status.setStyleSheet(
+                D505.status_style_pass)
+        else:
+            self.tu.solar_charge_i_status.setStyleSheet(
+                D505.status_style_fail)
+
+        self.tu.solar_charge_v_status.setStyleSheet(
             D505.status_style_pass)
 
         self.submit_button.setEnabled(False)

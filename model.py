@@ -22,7 +22,10 @@ class Model:
             "5v_max": 5.10,
             "5v_uart_tolerance": 0.02,
             "5v_uart_off": 0.3,
-            "bat_v_tolerance": 0.10
+            "bat_v_tolerance": 0.10,
+            "deep_sleep_min": 60,
+            "deep_sleep_max": 70,
+            "solar_charge_i": 50
         }
         self.tac = {
             "tac1": None,
@@ -93,6 +96,13 @@ class Model:
                 return (value < max_v and value > min_v)
             else:
                 raise ValueNotSet
+
+        elif limit == "Deep Sleep Current":
+            return (value > self.limits["deep_sleep_min"] and
+                    value < self.limits["deep_sleep_max"])
+
+        elif limit == "Solar Current":
+            return (value > self.limits["solar_charge_i"])
 
         else:
             raise InvalidLimit
