@@ -29,13 +29,13 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        self.addPage(Setup(self, test_utility, model, report))
+        self.addPage(Setup(self, test_utility, serial_manager, model, report))
         self.addPage(WatchDog(self, test_utility, serial_manager, model,
                               report))
         self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
         self.addPage(CypressBLE(self, test_utility, serial_manager, report))
-        # self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
-        #                              model, report))
+        self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
+                                     model, report))
         self.addPage(UartPower(self, test_utility, serial_manager, report))
         self.addPage(DeepSleep(self, test_utility, serial_manager, model,
                                report))
@@ -72,7 +72,7 @@ class Setup(QWizardPage):
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
-    def __init__(self, d505, test_utility, model, report):
+    def __init__(self, d505, test_utility, serial_manager, model, report):
         LINE_EDIT_WIDTH = 75
         VERT_SPACING = 25
         RIGHT_SPACING = 125
@@ -82,6 +82,7 @@ class Setup(QWizardPage):
 
         self.d505 = d505
         self.tu = test_utility
+        self.sm = serial_manager
         self.model = model
         self.report = report
 
@@ -343,7 +344,6 @@ class WatchDog(QWizardPage):
         self.sm.data_ready.connect(self.uart_5v1_handler)
         self.watchdog_pbar.setRange(0, 1)
         self.watchdog_pbar.setValue(1)
-        print(data)
         bl_pattern = "bootloader version .*\n"
         app_pattern = "datalogger version .*\n"
         try:
@@ -353,6 +353,8 @@ class WatchDog(QWizardPage):
             QMessageBox.warning(self, "Warning",
                                 "Error in serial data, try this step again")
             return
+        bootloader_version = bootloader_version.strip("\n")
+        app_version = app_version.strip("\n")
         self.report.write_data("Xmega Bootloader Version", bootloader_version,
                                True)
         self.report.write_data("Xmega App Version", app_version, True)
@@ -507,7 +509,6 @@ class OneWireMaster(QWizardPage):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.data_parser)
         self.one_wire_pbar.setRange(0, 545)
-        print(data)
         # Check for response from board before proceeding
         pattern = "download hex records now..."
         if (re.search(pattern, data)):
@@ -527,7 +528,6 @@ class OneWireMaster(QWizardPage):
     def data_parser(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.record_version)
-        print(data)
         pattern = "lock bits set"
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming complete.")
@@ -537,12 +537,11 @@ class OneWireMaster(QWizardPage):
 
     def record_version(self, data):
         self.sm.data_ready.disconnect()
-        print(f"Data received: {data}")
         pattern = "1WireMaster .*\n"
         at_version = re.search(pattern, data)
         if (at_version):
-            print("At: version: ", at_version.group())
-            self.report.write_data("ATtiny Version", at_version.group(), True)
+            at_version_val = at_version.group().strip("\n")
+            self.report.write_data("ATtiny Version", at_version_val, True)
             self.one_wire_lbl.setText("Version recorded.")
             self.tu.xmega_prog_status.setText(
                 "Xmega Programming: PASS")
@@ -652,10 +651,8 @@ class CypressBLE(QWizardPage):
         self.sm.data_ready.disconnect()
         pattern = "([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
-        print(data)
         if (version):
             self.report.write_data("BLE Version", version.group(), True)
-            print("valid version")
         else:
             QMessageBox.warning(self, "PSOC Version", "Bad command response.")
             self.report.write_data("BLE Version", "NONE", False)
@@ -683,9 +680,14 @@ class XmegaInterfaces(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
+        # self.start_button = QPushButton("Start Tests")
+        # self.start_button.clicked.connect(self.)
+
         self.xmega_lbl = QLabel("Testing Xmega interfaces.")
         self.xmega_lbl.setFont(self.label_font)
         self.xmega_pbar = QProgressBar()
+        self.xmega_pbar.setRange(0, 6)
+        self.xmega_pbar_counter = 0
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
@@ -702,15 +704,15 @@ class XmegaInterfaces(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
         self.command_signal.emit(f"serial {self.tu.pcba_sn}\r\n")
-        time.sleep(0.3)
+        time.sleep(3)
         self.sm.data_ready.connect(self.verify_serial)
         self.command_signal.emit("serial\r\n")
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def verify_serial(self, data):
         self.sm.data_ready.disconnect()
-        self.sm.data_read.connect(self.verify_batv)
-        pattern = "D505([0-9])+"
+        self.sm.data_ready.connect(self.verify_batv)
+        pattern = "D505([0-9])*"
         if (re.search(pattern, data)):
             serial_num = re.search(pattern, data).group()
             if (serial_num == self.tu.pcba_sn):
@@ -719,24 +721,30 @@ class XmegaInterfaces(QWizardPage):
                 self.report.write_data("Serial Match", serial_num, False)
         else:
             self.report.write_data("Serial Match", "None", False)
+            QMessageBox.warning(self, "Serial Error",
+                                "Serial error or malformed value")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.command_signal.emit("bat_v\r\n")
 
     def verify_batv(self, data):
         self.sm.data_ready.disconnect()
-        self.sm.data_read.connect(self.verify_modem)
+        self.sm.data_ready.connect(self.verify_modem)
         pattern = "([0-9])+.([0-9])+"
         if (re.search(pattern, data)):
-            bat_v = re.search(pattern, data).group()
+            bat_v = float(re.search(pattern, data).group())
             value_pass = self.model.compare_to_limit("Bat V", bat_v)
             if (value_pass):
                 self.report.write_data("Bat V", bat_v, True)
             else:
                 self.report.write_data("Bat V", bat_v, False)
         else:
-            QMessageBox.warning(self, "Serial Error",
+            QMessageBox.warning(self, "BatV Error",
                                 "Serial error or malformed value")
             self.report.write_data("Bat V", "None", False)
-        self.command_signal.emit("iridium_imei\r\n")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.command_signal.emit("status\r\n")
 
     def verify_modem(self, data):
         self.sm.data_ready.disconnect()
@@ -751,14 +759,16 @@ class XmegaInterfaces(QWizardPage):
             else:
                 self.report.write_data("Iridium IMEI Match", imei, False)
         else:
-            QMessageBox.warning(self, "Serial Error",
+            QMessageBox.warning(self, "Modem Error",
                                 "Serial error or malformed value")
             self.report.write_data("Iridium IMEI Match", "None", False)
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.command_signal.emit("board_id\r\n")
 
     def verify_board_id(self, data):
         self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.spot_read)
+        self.sm.data_ready.connect(self.verify_tac)
         pattern = "([0-9A-Fa-f][0-9A-Fa-f]\s+){7}([0-9A-Fa-f][0-9A-Fa-f]){1}"
         if (re.search(pattern, data)):
             board_id = re.search(pattern, data).group()
@@ -767,47 +777,34 @@ class XmegaInterfaces(QWizardPage):
             else:
                 self.report.write_data("Temp ID", board_id, False)
         else:
-            QMessageBox.warning(self, "Serial Error",
+            QMessageBox.warning(self, "Board ID Error",
                                 "Serial error or malformed value")
             self.report.write_data("Valid Board ID", "None", False)
-        self.command_signal.emit("spot-read 60\r\n")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.command_signal.emit("tac-get-info\r\n")
 
     # def gps_loc(self, data):
     #     self.sm.data_ready.disconnect()
     #     self.sm.data_ready.connect(self.spot_read)
     #     # Disabled because cannot test inside. Talk to customer
 
-    # def spot_read(self, data):
-    #     self.sm.data_ready.disconnect()
-    #     pattern = ("(PORT [0-9], TAC\sID ([a-xA-F0-9][a-xA-F0-9] +){5}"
-    #                "([a-xA-F0-9][a-xA-F0-9] *){1})")
-    #     matches = re.findall(pattern, data)
-    #     if (matches):
-    #         # Search pattern returns a list of tuples where the first value
-    #         # of each tuple is our target.
-    #         port = 1
-    #         for match in matches:
-    #             if match[0] == self.tu.settings.value(f"port{port}_tac_id"):
-    #                 pass
-    #             else:
-    #                 pass
-    #             port += 1
-
-        #     port1 = matches[0][0]
-        #     port2 = matches[1][0]
-        #     port3 = matches[2][0]
-        #     port4 = matches[3][0]
-
-        self.command_signal.emit("flash-fill 5000 25 35 0 10 s\r\n")
-        time.sleep(0.5)
-        self.sm.data_ready.connect(self.flash_test)
-        self.command_signal.emit("data\r\n")
-
-    def flash_test(self, data):
+    def verify_tac(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
-
+        pattern = "T[1-4],3,0"
+        matches = re.findall(pattern, data)
+        if (not matches or len(matches) != 4):
+                self.report.write_data("TAC Ports", "FAIL", False)
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.command_signal.emit("snow-depth\r\n")
+
+    # def flash_test(self, data):
+    #     self.sm.data_ready.disconnect()
+    #     self.sm.data_ready.connect(self.snow_depth)
+
+    #     self.command_signal.emit("snow-depth\r\n")
 
     def snow_depth(self, data):
         self.sm.data_ready.disconnect()
@@ -819,6 +816,8 @@ class XmegaInterfaces(QWizardPage):
             self.report.write_data("Snow Depth", None, False)
             QMessageBox.warning(self, "Serial Error",
                                 "Serial error or malformed value")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.is_complete = True
         self.complete_signal.emit()
 

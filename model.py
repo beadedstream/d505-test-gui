@@ -12,7 +12,7 @@ class ValueNotSet(Exception):
 class Model:
     def __init__(self):
         self.limits = {
-            "v_input_min": 5.5,
+            "v_input_min": 5.0,
             "v_input_max": 7.0,
             "i_input_min": 3.5,
             "i_input_max": 5.5,
@@ -57,21 +57,21 @@ class Model:
     def compare_to_limit(self, limit, value):
         if limit == "Input Voltage":
             self.input_v = value
-            return (value > self.limits["v_input_min"] and
-                    value < self.limits["v_input_max"])
+            return (value >= self.limits["v_input_min"] and
+                    value <= self.limits["v_input_max"])
 
         elif limit == "Input Current":
-            return (value > self.limits["i_input_min"] and
-                    value < self.limits["i_input_max"])
+            return (value >= self.limits["i_input_min"] and
+                    value <= self.limits["i_input_max"])
 
         elif limit == "2V Supply":
-            return (value > self.limits["2v_min"] and
-                    value < self.limits["2v_max"])
+            return (value >= self.limits["2v_min"] and
+                    value <= self.limits["2v_max"])
 
         elif limit == "5V Supply":
             self.internal_5v = value
-            if (value > self.limits["5v_min"] and
-                    value < self.limits["5v_max"]):
+            if (value >= self.limits["5v_min"] and
+                    value <= self.limits["5v_max"]):
                 return True
             else:
                 return False
@@ -93,13 +93,13 @@ class Model:
                 tolerance = self.limits["bat_v_tolerance"]
                 max_v = (1 + tolerance) * self.input_v
                 min_v = (1 - tolerance) * self.input_v
-                return (value < max_v and value > min_v)
+                return (value <= max_v and value >= min_v)
             else:
                 raise ValueNotSet
 
         elif limit == "Deep Sleep Current":
-            return (value > self.limits["deep_sleep_min"] and
-                    value < self.limits["deep_sleep_max"])
+            return (value >= self.limits["deep_sleep_min"] and
+                    value <= self.limits["deep_sleep_max"])
 
         elif limit == "Solar Current":
             return (value > self.limits["solar_charge_i"])
