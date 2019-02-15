@@ -9,14 +9,14 @@ from PyQt5.QtWidgets import (
     QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu,
     QDesktopWidget
 )
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
 VERSION_NUM = "v0.1"
 
-WINDOW_WIDTH = 1300
-WINDOW_HEIGHT = 975
+WINDOW_WIDTH = 1280 
+WINDOW_HEIGHT = 720
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2018.
@@ -27,6 +27,9 @@ ABOUT_TEXT = f"""
 class TestUtility(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.system_font = QApplication.font().family()
+        self.label_font = QFont(self.system_font, 14)
+
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
         settings_defaults = {
@@ -109,8 +112,11 @@ class TestUtility(QMainWindow):
         self.central_widget = QWidget()
 
         self.tester_id_lbl = QLabel("Please enter tester ID: ")
+        self.tester_id_lbl.setFont(self.label_font)
         self.pcba_pn_lbl = QLabel("Please select PCBA part number: ")
+        self.pcba_pn_lbl.setFont(self.label_font)
         self.pcba_sn_lbl = QLabel("Please enter or scan DUT serial number: ")
+        self.pcba_sn_lbl.setFont(self.label_font)
 
         self.tester_id_input = QLineEdit()
         self.pcba_sn_input = QLineEdit()
@@ -162,7 +168,7 @@ class TestUtility(QMainWindow):
         vbox = QVBoxLayout()
         vbox.addStretch()
         vbox.addLayout(hbox_logo)
-        vbox.addSpacing(50)
+        vbox.addSpacing(100)
         vbox.addLayout(hbox_test_id)
         vbox.addSpacing(50)
         vbox.addLayout(hbox_pn)
@@ -246,11 +252,6 @@ class TestUtility(QMainWindow):
 
         central_widget = QWidget()
 
-        # _____User Inputted Values_____
-        # self.tester_id = self.tester_id_input.text()
-        # self.pcba_pn = self.pcba_pn_input.currentText()
-        # self.pcba_sn = self.pcba_sn_input.text()
-
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
                                  "color: black; font-size: 20px}")
         status_style_pass = """QLabel {background: #8cff66;
@@ -295,7 +296,7 @@ class TestUtility(QMainWindow):
 
         # ______Layout______
         status_vbox1 = QVBoxLayout()
-        status_vbox1.setSpacing(25)
+        status_vbox1.setSpacing(10)
         status_vbox1.addWidget(self.tester_id_status)
         status_vbox1.addWidget(self.pcba_pn_status)
         status_vbox1.addWidget(self.pcba_sn_status)

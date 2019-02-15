@@ -29,15 +29,16 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        # self.addPage(Setup(test_utility, model, report))
-        # self.addPage(WatchDog(self, test_utility, serial_manager, model,
-        #                       report))
-        # self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
-        # self.addPage(CypressBLE(test_utility, serial_manager, report))
-        # self.addPage(XmegaInterfaces(test_utility, serial_manager, model,
-        #                              report))
-        # self.addPage(UartPower(test_utility, serial_manager, report))
-        self.addPage(DeepSleep(test_utility, serial_manager, model, report))
+        self.addPage(Setup(self, test_utility, model, report))
+        self.addPage(WatchDog(self, test_utility, serial_manager, model,
+                              report))
+        self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
+        self.addPage(CypressBLE(self, test_utility, serial_manager, report))
+        # self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
+        #                              model, report))
+        self.addPage(UartPower(self, test_utility, serial_manager, report))
+        self.addPage(DeepSleep(self, test_utility, serial_manager, model,
+                               report))
         self.addPage(FinalPage(test_utility, report))
 
         self.tu = test_utility
@@ -68,9 +69,10 @@ class D505(QWizard):
 
 
 class Setup(QWizardPage):
+    command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
-    def __init__(self, test_utility, model, report):
+    def __init__(self, d505, test_utility, model, report):
         LINE_EDIT_WIDTH = 75
         VERT_SPACING = 25
         RIGHT_SPACING = 125
@@ -78,6 +80,7 @@ class Setup(QWizardPage):
 
         super().__init__()
 
+        self.d505 = d505
         self.tu = test_utility
         self.model = model
         self.report = report
@@ -172,10 +175,13 @@ class Setup(QWizardPage):
         # vbox.addStretch()
 
         self.setLayout(self.layout)
+        self.setTitle("Setup")
 
     def initializePage(self):
         # Flag for tracking page completion and allowing the next button
         # to be re-enabled.
+        self.command_signal.connect(self.sm.send_command)
+        self.sm.data_ready.connect(self.app_off)
         self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
 
@@ -217,7 +223,10 @@ class Setup(QWizardPage):
         else:
             self.tu.supply_2v_status.setStyleSheet(
                 D505.status_style_fail)
+        self.command_signal.emit("app 0\r\n")
 
+    def app_off(self, data):
+        self.sm.data_ready.disconnect()
         self.is_complete = True
         self.complete_signal.emit()
 
@@ -303,6 +312,7 @@ class WatchDog(QWizardPage):
         self.layout.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(self.layout)
+        self.setTitle("Watchdog Reset")
 
     def initializePage(self):
         self.command_signal.connect(self.sm.send_command)
@@ -508,7 +518,7 @@ class OneWireMaster(QWizardPage):
             else:
                 QMessageBox.warning(self, "No hex file set or bad file path.")
         else:
-            QMessageBox.warning(self, "Warning1", "Bad command response.")
+            QMessageBox.warning(self, "Xmega1", "Bad command response.")
 
     def update_pbar(self):
         self.pbar_value += 1
@@ -523,38 +533,41 @@ class OneWireMaster(QWizardPage):
             self.one_wire_lbl.setText("Programming complete.")
             self.one_wire_test_signal.emit()
         else:
-            QMessageBox.warning(self, "Warning2", "Bad command response.")
+            QMessageBox.warning(self, "Xmega2", "Bad command response.")
 
     def record_version(self, data):
+        self.sm.data_ready.disconnect()
         print(f"Data received: {data}")
         pattern = "1WireMaster .*\n"
         at_version = re.search(pattern, data)
         if (at_version):
+            print("At: version: ", at_version.group())
             self.report.write_data("ATtiny Version", at_version.group(), True)
             self.one_wire_lbl.setText("Version recorded.")
             self.tu.xmega_prog_status.setText(
                 "Xmega Programming: PASS")
             self.tu.xmega_prog_status.setStyleSheet(
                 D505.status_style_pass)
-            self.is_complete = True
-            self.complete_signal.emit()
         else:
-
             self.report.write_data("ATtiny Version", "N/A", False)
             self.tu.xmega_prog_status.setText(
                 "Xmega Programming: FAIL")
             self.tu.xmega_prog_status.setStyleSheet(
                 D505.status_style_fail)
-            QMessageBox.warning(self, "Warning3", "Bad command response.")
+            QMessageBox.warning(self, "XMega3", "Bad command response.")
+
+        self.is_complete = True
+        self.complete_signal.emit()
 
 
 class CypressBLE(QWizardPage):
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
-    def __init__(self, test_utility, serial_manager, report):
+    def __init__(self, d505, test_utility, serial_manager, report):
         super().__init__()
 
+        self.d505 = d505
         self.tu = test_utility
         self.sm = serial_manager
         self.report = report
@@ -613,11 +626,13 @@ class CypressBLE(QWizardPage):
         self.layout.addStretch()
 
         self.setLayout(self.layout)
+        self.setTitle("Cypress BLE")
 
     def initializePage(self):
         self.is_complete = False
         self.command_signal.connect(self.sm.send_command)
         self.complete_signal.connect(self.completeChanged)
+        self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def ble_programming(self):
         self.tu.ble_prog_status.setText("BLE Programming: PASS")
@@ -631,37 +646,35 @@ class CypressBLE(QWizardPage):
 
     def psoc_version(self):
         self.sm.data_ready.connect(self.parse_data)
-        self.command_signal.emit("psoc-version")
+        self.command_signal.emit("psoc-version\r\n")
 
     def parse_data(self, data):
         self.sm.data_ready.disconnect()
         pattern = "([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
+        print(data)
         if (version):
             self.report.write_data("BLE Version", version.group(), True)
-            self.tu.hall_effect_status.setText(
-                "Hall Effect Sensor Test: PASS")
-            self.tu.hall_effect_status.setStyleSheet(
-                D505.status_style_pass)
+            print("valid version")
         else:
-            QMessageBox.warning(self, "Warning3", "Bad command response.")
+            QMessageBox.warning(self, "PSOC Version", "Bad command response.")
             self.report.write_data("BLE Version", "NONE", False)
-            self.tu.hall_effect_status.setText(
-                "Hall Effect Sensor Test: FAIL")
-            self.tu.hall_effect_status.setStyleSheet(
-                D505.status_style_fail)
 
         self.is_complete = True
         self.complete_signal.emit()
+
+    def isComplete(self):
+        return self.is_complete
 
 
 class XmegaInterfaces(QWizardPage):
     complete_signal = pyqtSignal()
     command_signal = pyqtSignal(str)
 
-    def __init__(self, test_utility, serial_manager, model, report):
+    def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
 
+        self.d505 = d505
         self.tu = test_utility
         self.sm = serial_manager
         self.model = model
@@ -682,6 +695,7 @@ class XmegaInterfaces(QWizardPage):
         self.layout.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(self.layout)
+        self.setTitle("XMega Interfaces")
 
     def initializePage(self):
         self.is_complete = False
@@ -691,6 +705,7 @@ class XmegaInterfaces(QWizardPage):
         time.sleep(0.3)
         self.sm.data_ready.connect(self.verify_serial)
         self.command_signal.emit("serial\r\n")
+        self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def verify_serial(self, data):
         self.sm.data_ready.disconnect()
@@ -748,9 +763,9 @@ class XmegaInterfaces(QWizardPage):
         if (re.search(pattern, data)):
             board_id = re.search(pattern, data).group()
             if (board_id[-2:] == "28"):
-                self.report.write_data("Valid Board ID", board_id, True)
+                self.report.write_data("Temp ID", board_id, True)
             else:
-                self.report.write_data("Valid Board ID", board_id, False)
+                self.report.write_data("Temp ID", board_id, False)
         else:
             QMessageBox.warning(self, "Serial Error",
                                 "Serial error or malformed value")
@@ -762,21 +777,21 @@ class XmegaInterfaces(QWizardPage):
     #     self.sm.data_ready.connect(self.spot_read)
     #     # Disabled because cannot test inside. Talk to customer
 
-    def spot_read(self, data):
-        self.sm.data_ready.disconnect()
-        pattern = ("(PORT [0-9], TAC\sID ([a-xA-F0-9][a-xA-F0-9] +){5}"
-                   "([a-xA-F0-9][a-xA-F0-9] *){1})")
-        matches = re.findall(pattern, data)
-        if (matches):
-            # Search pattern returns a list of tuples where the first value
-            # of each tuple is our target.
-            port = 1
-            for match in matches:
-                if match[0] == self.tu.settings.value(f"port{port}_tac_id"):
-                    pass
-                else:
-                    pass
-                port += 1
+    # def spot_read(self, data):
+    #     self.sm.data_ready.disconnect()
+    #     pattern = ("(PORT [0-9], TAC\sID ([a-xA-F0-9][a-xA-F0-9] +){5}"
+    #                "([a-xA-F0-9][a-xA-F0-9] *){1})")
+    #     matches = re.findall(pattern, data)
+    #     if (matches):
+    #         # Search pattern returns a list of tuples where the first value
+    #         # of each tuple is our target.
+    #         port = 1
+    #         for match in matches:
+    #             if match[0] == self.tu.settings.value(f"port{port}_tac_id"):
+    #                 pass
+    #             else:
+    #                 pass
+    #             port += 1
 
         #     port1 = matches[0][0]
         #     port2 = matches[1][0]
@@ -805,7 +820,7 @@ class XmegaInterfaces(QWizardPage):
             QMessageBox.warning(self, "Serial Error",
                                 "Serial error or malformed value")
         self.is_complete = True
-        self.command_signal.emit()
+        self.complete_signal.emit()
 
     def isComplete(self):
         return self.is_complete
@@ -814,9 +829,10 @@ class XmegaInterfaces(QWizardPage):
 class UartPower(QWizardPage):
     complete_signal = pyqtSignal()
 
-    def __init__(self, test_utility, serial_manager, report):
+    def __init__(self, d505, test_utility, serial_manager, report):
         super().__init__()
 
+        self.d505 = d505
         self.tu = test_utility
         self.sm = serial_manager
         self.report = report
@@ -877,16 +893,18 @@ class UartPower(QWizardPage):
         self.layout.addStretch()
 
         self.setLayout(self.layout)
+        self.setTitle("UART Power")
 
     def initializePage(self):
         self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
+        self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def hall_effect(self):
         self.tu.hall_effect_status.setText(
             "Hall Effect Sensor Test: PASS")
         self.tu.hall_effect_status.setStyleSheet(
-            D505.status_style_fail)
+            D505.status_style_pass)
 
     def isComplete(self):
         return self.is_complete
@@ -903,13 +921,14 @@ class DeepSleep(QWizardPage):
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
-    def __init__(self, test_utility, serial_manager, model, report):
+    def __init__(self, d505, test_utility, serial_manager, model, report):
         LINE_EDIT_WIDTH = 75
         RIGHT_SPACING = 50
         LEFT_SPACING = 50
 
         super().__init__()
 
+        self.d505 = d505
         self.tu = test_utility
         self.sm = serial_manager
         self.model = model
@@ -924,11 +943,15 @@ class DeepSleep(QWizardPage):
         self.disconnect_lbl = QLabel("Disconnect the PSoC programmer")
         self.disconnect_lbl.setFont(self.label_font)
         self.disconnect_chkbx = QCheckBox()
+        self.disconnect_chkbx.clicked.connect(
+            lambda: D505.checked(self.disconnect_lbl, self.disconnect_chkbx))
 
         self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
         self.ble_chkbx.clicked.connect(self.send_commands)
+        self.ble_chkbx.clicked.connect(
+            lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
 
         self.input_i_lbl = QLabel("Switch current meter to uA and record input"
                                   " current")
@@ -1025,12 +1048,13 @@ class DeepSleep(QWizardPage):
         self.layout.addStretch()
 
         self.setLayout(self.layout)
+        self.setTitle("Deep Sleep")
 
     def initializePage(self):
         self.is_complete = False
         self.command_signal.connect(self.sm.send_command)
         self.complete_signal.connect(self.completeChanged)
-        # self.sm.data_ready.disconnect()
+        self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def send_commands(self):
         self.command_signal.emit("app 0\r\n")
@@ -1085,6 +1109,9 @@ class DeepSleep(QWizardPage):
         self.is_complete = True
         self.complete_signal.emit()
 
+    def isComplete(self):
+        return self.is_complete
+
 
 class FinalPage(QWizardPage):
     def __init__(self, test_utility, report):
@@ -1096,8 +1123,15 @@ class FinalPage(QWizardPage):
         self.tu = test_utility
         self.report = report
 
-        # Placeholder until logic is built in
-        self.test_status = "Successful"
+    def initializePage(self):
+        # Check test result
+        test_result = self.report.data["Test Result"][2]
+
+        if test_result:
+            self.test_status = "Successful"
+        else:
+            self.test_status = "Failed"
+
         self.test_status_labl = QLabel(f"Test {self.test_status}!")
         self.test_status_labl.setFont(self.label_font)
         self.break_down_lbl = QLabel("Remove power and disconnect all"
@@ -1107,7 +1141,9 @@ class FinalPage(QWizardPage):
         self.layout = QVBoxLayout()
         self.layout.addStretch()
         self.layout.addWidget(self.test_status_labl)
+        self.layout.addSpacing(25)
         self.layout.addWidget(self.break_down_lbl)
         self.layout.addStretch()
         self.layout.setAlignment(Qt.AlignHCenter)
         self.setLayout(self.layout)
+        self.setTitle("Test Completed")

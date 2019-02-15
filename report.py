@@ -35,9 +35,9 @@ class Report:
         already in the list of data, include it.
         """
         if (data_key in self.data or not passed):
-            self.data[data_key][0] = data_value
-            self.data[data_key][2] = passed
+            self.data[data_key] = [data_value, "", passed]
         if (not passed):
+            print(data_value)
             self.data["Test Result"] = ["FAIL", "", False]
 
     def set_file_location(self, file_path):
