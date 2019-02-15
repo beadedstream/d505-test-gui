@@ -5,61 +5,70 @@ from datetime import datetime as dt
 class Report:
     def __init__(self):
         today = dt.now()
+        self.timestamp = None
         self.date = f"{today.day:02d}-{today.month:02d}-{today.year}"
+        # Data format: key | [value, units, test-passed]
         self.data = {
-            "Timestamp": None,
-            "PCBA PN": None,
-            "PCBA SN": None,
-            "Date": self.date,
-            "Tester ID": None,
-            "Test Result": None,
-            "Input Voltage": None,
-            "Initial Current": None,
-            "2V Supply": None,
-            "5V Supply": None,
-            "Xmega Bootloader Version": None,
-            "Xmega App Version": None,
-            "ATtiny Version": None,
-            "BLE Version": None,
-            "Temp ID": None,
-            "Solar Charge Voltage": None,
-            "Solar Charge Current": None,
-            "Deep Sleep Current": None
+            "Timestamp": [None, "", True],
+            "PCBA PN": [None, "", False],
+            "PCBA SN": [None, "", False],
+            "Tester ID": [None, "", False],
+            "Test Result": ["PASS", "", True],
+            "Input Voltage": [None, "V", False],
+            "Input Current": [None, "mA", False],
+            "2V Supply": [None, "V", False],
+            "5V Supply": [None, "V", False],
+            "Xmega Bootloader Version": [None, "", False],
+            "Xmega App Version": [None, "", False],
+            "ATtiny Version": [None, "", False],
+            "BLE Version": [None, "", False],
+            "Temp ID": [None, "", False],
+            "Solar Charge Voltage": [None, "V", False],
+            "Solar Charge Current": [None, "mA", False],
+            "Deep Sleep Current": [None, "uA", False]
         }
         self.file_path = ""
 
-    def write_data(self, data_value):
-        """Updates the data model with the received value."""
-        if data_value[0] in self.data:
-            self.data[data_value[0]] = data_value[1]
-            return True
-        return False
+    def write_data(self, data_key, data_value, passed):
+        """Updates the data model with the received value and a bool
+        indicating if the test passed or not. If the test failed and isn't
+        already in the list of data, include it.
+        """
+        if (data_key in self.data):
+            self.data[data_key][0] = data_value
+            self.data[data_key][2] = passed
+
+        if (data_key not in self.data and not passed):
+            self.data[data_key] = [data_value, "", passed]
+
+        if (not passed):
+            self.data["Test Result"] = ["FAIL", "", False]
 
     def set_file_location(self, file_path):
-        """Sets the file path for the report."""
+        """Sets the file path for the report's save location."""
         self.file_path = file_path
 
     def generate_report(self):
         """Writes all data in the data dictionary to an output file."""
         # Get the time again for a more accurate report timestamp.
         today = dt.now()
-        self.data["Timestamp"] = (
+        self.timestamp = (
             f"{today.year}-{today.month:02d}-{today.day:02d}"
             f" {today.hour:02d}:{today.minute:02d}"
             f":{today.second}"
         )
-        name = path.join(self.file_path,
-                         f"{self.date}-ID-{self.data['Tester ID']}.txt")
+        self.data["Timestamp"][0] = self.timestamp
+        # Filename-friendly timestamp
+        ts = self.timestamp.replace(":", "-")
+        name = path.join(
+            self.file_path,
+            f"{ts}-ID-{self.data['Tester ID'][0]}.txt")
         f = open(name, "w")
-        for key, val in self.data.items():
-            f.write(f"{key}: {val}\n")
+        for key, value in self.data.items():
+            v = str(value[0]) + " " + value[1]
+            if value[2]:
+                f.write(f"{key:<25}: {v:<20}\n")
+            else:
+                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<30}\n")
+
         f.close()
-
-
-if __name__ == "__main__":
-    report = Report()
-    report.write_data(["Tester ID", 1234])
-    report.write_data(["2V Supply", "2.31 V"])
-    report.write_data(["Initial Current", "3.14 mA"])
-    report.set_file_location("/home/samuel/Desktop/")
-    report.generate_report()

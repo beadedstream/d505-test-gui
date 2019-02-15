@@ -1,19 +1,22 @@
 import re
-import D505Procedure
-import uart
+import d505
+import serialmanager
+import model
+import report
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
-    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu
+    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu,
+    QDesktopWidget
 )
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QSettings, QEvent
+from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtCore import QSettings, Qt, QThread
 
 
 VERSION_NUM = "v0.1"
 
-WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 750
+WINDOW_WIDTH = 1280 
+WINDOW_HEIGHT = 720
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2018.
@@ -24,6 +27,9 @@ ABOUT_TEXT = f"""
 class TestUtility(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.system_font = QApplication.font().family()
+        self.label_font = QFont(self.system_font, 14)
+
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
         settings_defaults = {
@@ -43,6 +49,21 @@ class TestUtility(QMainWindow):
         for key in settings_defaults:
             if not self.settings.value(key):
                 self.settings.setValue(key, settings_defaults[key])
+
+        self.sm = serialmanager.SerialManager()
+        self.serial_thread = QThread()
+        self.sm.moveToThread(self.serial_thread)
+        self.sm.no_port_sel.connect(self.port_warning)
+        self.serial_thread.start()
+
+        self.m = model.Model()
+        self.r = report.Report()
+
+        # Part number : [serial prefix, procedure class]
+        self.product_data = {
+            "45321-03": ["D505", d505.D505],
+            "45320-02": ["D505", d505.D505]
+        }
 
         # Create program actions.
         self.config = QAction("Settings", self)
@@ -73,9 +94,11 @@ class TestUtility(QMainWindow):
 
         self.serial_menu = self.menubar.addMenu("&Serial")
         self.serial_menu.installEventFilter(self)
-        self.ports = QMenu("&Ports", self)
-        # self.ports.installEventFilter(self)
-        self.serial_menu.addMenu(self.ports)
+        self.ports_menu = QMenu("&Ports", self)
+        self.serial_menu.addMenu(self.ports_menu)
+        self.ports_menu.aboutToShow.connect(self.populate_ports)
+        self.ports_group = QActionGroup(self)
+        self.ports_group.triggered.connect(self.connect_port)
 
         self.help_menu = self.menubar.addMenu("&Help")
         self.help_menu.addAction(self.about_tu)
@@ -89,8 +112,11 @@ class TestUtility(QMainWindow):
         self.central_widget = QWidget()
 
         self.tester_id_lbl = QLabel("Please enter tester ID: ")
+        self.tester_id_lbl.setFont(self.label_font)
         self.pcba_pn_lbl = QLabel("Please select PCBA part number: ")
+        self.pcba_pn_lbl.setFont(self.label_font)
         self.pcba_sn_lbl = QLabel("Please enter or scan DUT serial number: ")
+        self.pcba_sn_lbl.setFont(self.label_font)
 
         self.tester_id_input = QLineEdit()
         self.pcba_sn_input = QLineEdit()
@@ -98,12 +124,13 @@ class TestUtility(QMainWindow):
         self.pcba_sn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
         self.pcba_pn_input = QComboBox()
-        self.pcba_pn_input.addItem("D505")
+        self.pcba_pn_input.addItem("45321-03")
+        self.pcba_pn_input.addItem("45320-02")
         self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
-        self.start_btn = QPushButton("Start")
-        self.start_btn.clicked.connect(self.start_procedure)
+        self.start_btn = QPushButton("Start", default=True)
         self.start_btn.setFixedWidth(200)
+        self.start_btn.clicked.connect(self.parse_values)
 
         self.logo_img = QPixmap("Images/h_logo.png")
         self.logo_img = self.logo_img.scaledToWidth(600)
@@ -139,9 +166,9 @@ class TestUtility(QMainWindow):
         hbox_start_btn.addSpacing(RIGHT_SPACING)
 
         vbox = QVBoxLayout()
-        vbox.addSpacing(50)
+        vbox.addStretch()
         vbox.addLayout(hbox_logo)
-        vbox.addSpacing(50)
+        vbox.addSpacing(100)
         vbox.addLayout(hbox_test_id)
         vbox.addSpacing(50)
         vbox.addLayout(hbox_pn)
@@ -149,58 +176,23 @@ class TestUtility(QMainWindow):
         vbox.addLayout(hbox_sn)
         vbox.addSpacing(50)
         vbox.addLayout(hbox_start_btn)
-        vbox.addSpacing(50)
+        vbox.addStretch()
 
         # Put an initial message on the statusbar.
-        self.statusBar().showMessage("Set configuration settings!")
+        # self.statusBar().showMessage("Set configuration settings!")
 
         self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
-
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        self.setWindowTitle("BeadedStream Manufacturing TestUtility")
+        # self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.center()
+        # self.setWindowTitle("BeadedStream Manufacturing TestUtility")
 
-    def eventFilter(self, object, event):
-        if (
-            object is self.serial_menu and
-            event.type() == QEvent.MouseButtonPress and
-            event.button() == 1
-        ):
-
-            # Scan ports and create a set of the port names as strings.
-            ports = set([str(p) for p in uart.Uart.scan_ports()])
-            # Get all serial menu actions into two sets: one for string
-            # names and one for objects.
-            actions = set([a.text() for a in self.ports.actions()])
-            actions_objs = set(self.ports.actions())
-
-            # Perform set substraction to determine which ports should be
-            # added and which removed.
-            add_actions = ports - actions
-            remove_actions = actions - ports
-
-            actions_group = QActionGroup(self)
-
-            # There are no ports add a "None" action for user assurance.
-            if not len(ports) and not len(actions):
-                none = self.ports.addAction("None")
-                actions_group.addAction(none)
-
-            for port in add_actions:
-                port_action = self.ports.addAction(str(port))
-                port_action.setCheckable(True)
-                actions_group.addAction(port_action)
-
-            for action in remove_actions:
-                remove = next(filter(lambda a: a.text() == action,
-                                     actions_objs))
-                self.ports.removeAction(remove)
-            return True
-
-        else:
-            return False
-
-        return False
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
@@ -208,52 +200,95 @@ class TestUtility(QMainWindow):
     def about_qt(self):
         QMessageBox.aboutQt(self, "About Qt")
 
-    def scan_ports(self):
-        ports = uart.Uart.scan_ports()
-        print(ports)
+    def populate_ports(self):
+        ports = serialmanager.SerialManager.scan_ports()
+        self.ports_menu.clear()
 
-    def connect_to_port(self):
-        pass
+        if not ports:
+            action = "None"
+            self.ports_menu.addAction(action)
+            self.sm.close_port()
 
-    def start_procedure(self):
-        central_widget = QWidget()
+        for port in ports:
+            port_description = str(port)[:-6]
+            action = self.ports_menu.addAction(port_description)
+            port_name = port_description[0:4]
+            if self.sm.is_connected(port_name):
+                action.setCheckable(True)
+                action.setChecked(True)
+            self.ports_group.addAction(action)
 
-        # _____User Inputted Values_____
+    def connect_port(self, action):
+        port_name = action.text()[0:4]
+        if (self.sm.is_connected(port_name)):
+            action.setChecked
+
+        self.sm.open_port(port_name)
+
+    def port_warning(self):
+        QMessageBox.warning(self, "Warning!", "No serial port selected!")
+
+    def parse_values(self):
         self.tester_id = self.tester_id_input.text()
         self.pcba_pn = self.pcba_pn_input.currentText()
         self.pcba_sn = self.pcba_sn_input.text()
 
+        if (self.tester_id and self.pcba_pn and self.pcba_sn):
+            self.r.write_data("Tester ID", self.tester_id_input.text(), True)
+            self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
+            self.r.write_data("PCBA PN",
+                              self.pcba_pn_input.currentText(), True)
+        else:
+            QMessageBox.warning(self, "Warning", "Missing Value!")
+            return
+
+        if not self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0]:
+            QMessageBox.warning(self, "Warning", "Bad serial number!")
+            return
+
+        self.start_procedure()
+
+    def start_procedure(self):
+
+        central_widget = QWidget()
+
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
                                  "color: black; font-size: 20px}")
+        status_style_pass = """QLabel {background: #8cff66;
+                                border: 2px solid grey; font-size: 20px}"""
 
         # ______Labels______
         self.tester_id_status = QLabel(f"Tester ID: {self.tester_id}")
         self.pcba_pn_status = QLabel(f"PCBA PN: {self.pcba_pn}")
         self.pcba_sn_status = QLabel(f"PCBA SN: {self.pcba_sn}")
-        self.input_v_status = QLabel("Input Voltage:_____V")
-        self.input_i_status = QLabel("Input Current:_____mA")
-        self.supply_2v_status = QLabel("2V Supply_____V")
-        self.supply_5v_status = QLabel("5V Supply_____V")
+        self.input_v_status = QLabel(f"Input Voltage: _____ V")
+        self.input_i_status = QLabel(f"Input Current: _____ mA")
+        self.supply_2v_status = QLabel("2V Supply: _____V")
+        self.supply_5v_status = QLabel("5V Supply: _____V")
+        self.uart_5v_status = QLabel("5V UART: _____ V")
+        self.uart_off_status = QLabel("UART Off: _____ V")
         self.xmega_prog_status = QLabel("Xmega Programming:_____")
-        self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
+        self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
         self.led_test_status = QLabel("LED Test:_____")
         self.solar_charge_v_status = QLabel("Solar Charge Voltage:_____V")
         self.solar_charge_i_status = QLabel("Solar Charge Current:_____mA")
         self.deep_sleep_i_status = QLabel("Deep Sleep Current:_____uA")
 
-        self.tester_id_status.setStyleSheet(status_lbl_stylesheet)
-        self.pcba_pn_status.setStyleSheet(status_lbl_stylesheet)
-        self.pcba_sn_status.setStyleSheet(status_lbl_stylesheet)
+        self.tester_id_status.setStyleSheet(status_style_pass)
+        self.pcba_pn_status.setStyleSheet(status_style_pass)
+        self.pcba_sn_status.setStyleSheet(status_style_pass)
         self.input_v_status.setStyleSheet(status_lbl_stylesheet)
         self.input_i_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_2v_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_5v_status.setStyleSheet(status_lbl_stylesheet)
+        self.uart_5v_status.setStyleSheet(status_lbl_stylesheet)
+        self.uart_off_status.setStyleSheet(status_lbl_stylesheet)
         self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
-        self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
+        self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
         self.led_test_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_v_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_i_status.setStyleSheet(status_lbl_stylesheet)
@@ -261,7 +296,7 @@ class TestUtility(QMainWindow):
 
         # ______Layout______
         status_vbox1 = QVBoxLayout()
-        status_vbox1.setSpacing(25)
+        status_vbox1.setSpacing(10)
         status_vbox1.addWidget(self.tester_id_status)
         status_vbox1.addWidget(self.pcba_pn_status)
         status_vbox1.addWidget(self.pcba_sn_status)
@@ -269,10 +304,12 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.input_i_status)
         status_vbox1.addWidget(self.supply_2v_status)
         status_vbox1.addWidget(self.supply_5v_status)
+        status_vbox1.addWidget(self.uart_5v_status)
+        status_vbox1.addWidget(self.uart_off_status)
         status_vbox1.addWidget(self.xmega_prog_status)
-        status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
+        status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.led_test_status)
         status_vbox1.addWidget(self.solar_charge_v_status)
         status_vbox1.addWidget(self.solar_charge_i_status)
@@ -282,12 +319,16 @@ class TestUtility(QMainWindow):
         status_group = QGroupBox("Test Statuses")
         status_group.setLayout(status_vbox1)
 
-        self.procedure = D505Procedure.D505(self)
+        # Use the product data dictionary to call the procdure class that
+        # corresponds to the part number. Create an instance of it passing it
+        # the instances of test_utility, model, serial_manager and report.
+        self.procedure = self.product_data[self.pcba_pn][1](self, self.m,
+                                                            self.sm, self.r)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
         grid.setColumnStretch(1, 15)
-        grid.addWidget(status_group, 0, 0)
+        grid.addWidget(status_group, 0, 0, Qt.AlignTop)
         grid.addWidget(self.procedure, 0, 1)
 
         central_widget.setLayout(grid)

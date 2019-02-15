@@ -10,9 +10,9 @@ tac_ids = {
 }
 
 good_vi_values = {
-    "v_input": 6.0,
-    "i_input": 4.0,
-    "2v": 2.00,
+    "Input Voltage": 6.0,
+    "Input Current": 4.0,
+    "2V Supply": 2.00,
     "5v": 5.05,
     "5v_internal": 5.04,
     "5v_uart_off": 0.1
