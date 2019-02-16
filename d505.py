@@ -29,10 +29,10 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        self.addPage(Setup(self, test_utility, serial_manager, model, report))
-        self.addPage(WatchDog(self, test_utility, serial_manager, model,
-                              report))
-        self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
+        # self.addPage(Setup(self, test_utility, serial_manager, model, report))
+        # self.addPage(WatchDog(self, test_utility, serial_manager, model,
+        #                       report))
+        # self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
         self.addPage(CypressBLE(self, test_utility, serial_manager, report))
         self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
                                      model, report))
@@ -572,19 +572,19 @@ class CypressBLE(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.cypress_lbl = QLabel("Run the Cypress programming utility to "
-                                  "program the CYBLE-224116 BLE module.")
-        self.cypress_lbl.setFont(self.label_font)
-        self.cypress_chkbx = QCheckBox()
-        self.cypress_chkbx.clicked.connect(self.ble_programming)
-        self.cypress_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
-                                        height: 20px}")
-        self.cypress_chkbx.clicked.connect(
-            lambda: D505.checked(self.cypress_lbl, self.cypress_chkbx))
+        self.ble_lbl = QLabel("Run the Cypress programming utility to "
+                              "program the CYBLE-224116 BLE module.")
+        self.ble_lbl.setFont(QFont(self.system_font, 12))
+        self.ble_btn_pass = QPushButton("PASS")
+        self.ble_btn_pass.setMaximumWidth(75)
+        self.ble_btn_fail = QPushButton("FAIL")
+        self.ble_btn_fail.setMaximumWidth(75)
+        self.ble_btn_pass.clicked.connect(self.ble_pass)
+        self.ble_btn_fail.clicked.connect(self.ble_fail)
 
         self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug/replug both UART "
                                     "and battery).")
-        self.pwr_cycle_lbl.setFont(self.label_font)
+        self.pwr_cycle_lbl.setFont(QFont(self.system_font, 12))
         self.pwr_cycle_chkbx = QCheckBox()
         self.pwr_cycle_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
@@ -593,24 +593,27 @@ class CypressBLE(QWizardPage):
 
         self.bt_comm_lbl = QLabel("Very communication to 505 with "
                                   "bluetooth device")
-        self.bt_comm_lbl.setFont(self.label_font)
-        self.bt_comm_chkbx = QCheckBox()
-        self.bt_comm_chkbx.clicked.connect(self.bt_comm)
-        self.bt_comm_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
-                                        height: 20px}")
-        self.bt_comm_chkbx.clicked.connect(
-            lambda: D505.checked(self.bt_comm_lbl, self.bt_comm_chkbx))
-        self.bt_comm_chkbx.clicked.connect(self.psoc_version)
+        self.bt_comm_lbl.setFont(QFont(self.system_font, 12))
+        self.bt_comm_btn_pass = QPushButton("PASS")
+        self.bt_comm_btn_pass.setMaximumWidth(75)
+        self.bt_comm_btn_fail = QPushButton("FAIL")
+        self.bt_comm_btn_fail.setMaximumWidth(75)
+        self.bt_comm_btn_pass.clicked.connect(self.bt_comm_pass)
+        self.bt_comm_btn_fail.clicked.connect(self.bt_comm_fail)
+        self.bt_comm_btn_pass.clicked.connect(self.psoc_version)
+        self.bt_comm_btn_fail.clicked.connect(self.psoc_version)
 
         self.grid = QGridLayout()
-        self.grid.setHorizontalSpacing(75)
+        self.grid.setHorizontalSpacing(25)
         self.grid.setVerticalSpacing(25)
-        self.grid.addWidget(self.cypress_lbl, 0, 0)
-        self.grid.addWidget(self.cypress_chkbx, 0, 1)
+        self.grid.addWidget(self.ble_lbl, 0, 0)
+        self.grid.addWidget(self.ble_btn_pass, 0, 1)
+        self.grid.addWidget(self.ble_btn_fail, 0, 2)
         self.grid.addWidget(self.pwr_cycle_lbl, 1, 0)
         self.grid.addWidget(self.pwr_cycle_chkbx, 1, 1)
         self.grid.addWidget(self.bt_comm_lbl, 2, 0)
-        self.grid.addWidget(self.bt_comm_chkbx, 2, 1)
+        self.grid.addWidget(self.bt_comm_btn_pass, 2, 1)
+        self.grid.addWidget(self.bt_comm_btn_fail, 2, 2)
 
         self.hbox = QHBoxLayout()
         self.hbox.addStretch()
@@ -631,15 +634,37 @@ class CypressBLE(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
-    def ble_programming(self):
+    def ble_pass(self):
         self.tu.ble_prog_status.setText("BLE Programming: PASS")
         self.tu.ble_prog_status.setStyleSheet(
             D505.status_style_pass)
+        self.ble_lbl.setStyleSheet("QLabel {color: grey}")
+        self.ble_btn_pass.setEnabled(False)
+        self.ble_btn_fail.setEnabled(False)
 
-    def bt_comm(self):
+    def ble_fail(self):
+        self.tu.ble_prog_status.setText("BLE Programming: FAIL")
+        self.tu.ble_prog_status.setStyleSheet(
+            D505.status_style_fail)
+        self.ble_lbl.setStyleSheet("QLabel {color: grey}")
+        self.ble_btn_pass.setEnabled(False)
+        self.ble_btn_fail.setEnabled(False)
+
+    def bt_comm_pass(self):
         self.tu.bluetooth_test_status.setText("Bluetooth Test: PASS")
         self.tu.bluetooth_test_status.setStyleSheet(
             D505.status_style_pass)
+        self.bt_comm_lbl.setStyleSheet("QLabel {color: grey}")
+        self.bt_comm_btn_pass.setEnabled(False)
+        self.bt_comm_btn_fail.setEnabled(False)
+
+    def bt_comm_fail(self):
+        self.tu.bluetooth_test_status.setText("Bluetooth Test: FAIL")
+        self.tu.bluetooth_test_status.setStyleSheet(
+            D505.status_style_fail)
+        self.bt_comm_lbl.setStyleSheet("QLabel {color: grey}")
+        self.bt_comm_btn_pass.setEnabled(False)
+        self.bt_comm_btn_fail.setEnabled(False)
 
     def psoc_version(self):
         self.sm.data_ready.connect(self.parse_data)
