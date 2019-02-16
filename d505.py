@@ -50,8 +50,6 @@ class D505(QWizard):
                                             QMessageBox.Yes,
                                             QMessageBox.No)
         if confirmation == QMessageBox.Yes:
-            # self.serial_thread.quit()
-            # self.serial_thread.wait()
             self.tu.initUI()
         else:
             pass

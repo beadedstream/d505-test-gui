@@ -15,7 +15,7 @@ from PyQt5.QtCore import QSettings, Qt, QThread
 
 VERSION_NUM = "v0.1"
 
-WINDOW_WIDTH = 1280 
+WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
 ABOUT_TEXT = f"""
@@ -62,7 +62,7 @@ class TestUtility(QMainWindow):
         # Part number : [serial prefix, procedure class]
         self.product_data = {
             "45321-03": ["D505", d505.D505],
-            "45320-02": ["D505", d505.D505]
+            "45321-02": ["D505", d505.D505]
         }
 
         # Create program actions.
@@ -125,7 +125,7 @@ class TestUtility(QMainWindow):
 
         self.pcba_pn_input = QComboBox()
         self.pcba_pn_input.addItem("45321-03")
-        self.pcba_pn_input.addItem("45320-02")
+        self.pcba_pn_input.addItem("45321-02")
         self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
         self.start_btn = QPushButton("Start", default=True)
@@ -178,15 +178,12 @@ class TestUtility(QMainWindow):
         vbox.addLayout(hbox_start_btn)
         vbox.addStretch()
 
-        # Put an initial message on the statusbar.
-        # self.statusBar().showMessage("Set configuration settings!")
-
         self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         # self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.center()
-        # self.setWindowTitle("BeadedStream Manufacturing TestUtility")
+        self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 
     def center(self):
         qr = self.frameGeometry()
@@ -334,10 +331,6 @@ class TestUtility(QMainWindow):
         central_widget.setLayout(grid)
 
         self.setCentralWidget(central_widget)
-
-    def update_label(self):
-        voltage = 4.2
-        self.input_v_status.setText(f"Input Voltage: {voltage} V")
 
     def configuration(self):
         FILE_BTN_WIDTH = 30
