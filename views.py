@@ -202,8 +202,7 @@ class TestUtility(QMainWindow):
         self.ports_menu.clear()
 
         if not ports:
-            action = "None"
-            self.ports_menu.addAction(action)
+            self.ports_menu.addAction("None")
             self.sm.close_port()
 
         for port in ports:

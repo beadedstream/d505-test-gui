@@ -29,10 +29,10 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        # self.addPage(Setup(self, test_utility, serial_manager, model, report))
-        # self.addPage(WatchDog(self, test_utility, serial_manager, model,
-        #                       report))
-        # self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
+        self.addPage(Setup(self, test_utility, serial_manager, model, report))
+        self.addPage(WatchDog(self, test_utility, serial_manager, model,
+                              report))
+        self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
         self.addPage(CypressBLE(self, test_utility, serial_manager, report))
         self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
                                      model, report))

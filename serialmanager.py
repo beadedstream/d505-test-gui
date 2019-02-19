@@ -85,6 +85,10 @@ class SerialManager(QObject):
         self.sleep_finished.emit()
 
     def is_connected(self, port):
+        try:
+            self.ser.write(b"\r\n")
+        except serial.serialutil.SerialException:
+            return False
         return self.ser.port == port and self.ser.is_open
 
     def open_port(self, port):
