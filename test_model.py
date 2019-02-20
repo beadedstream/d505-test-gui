@@ -10,20 +10,20 @@ tac_ids = {
 }
 
 good_vi_values = {
-    "Input Voltage": 6.0,
+    "Input Voltage": 5.4,
     "Input Current": 4.0,
     "2V Supply": 2.00,
-    "5v": 5.05,
-    "5v_internal": 5.04,
-    "5v_uart_off": 0.1
+    "5V UART": 5.05,
+    "Bat V": 5.04,
+    "UART Off": 0.1
 }
 
 bad_vi_values = {
-    "v_input": 4.0,
-    "i_input": 6.0,
-    "2v": 2.11,
-    "5v": 4.89,
-    "5v_uart_off": 0.34
+    "Input Voltage": 4.0,
+    "Input Current": 6.0,
+    "2V Supply": 2.11,
+    "5V UART": 4.89,
+    "UART Off": 0.34
 }
 
 
@@ -42,6 +42,7 @@ def test_tac_ids():
 
 
 def test_limits():
+    m.internal_5v = 5.0
     for key, value in good_vi_values.items():
         assert m.compare_to_limit(key, value)
 
