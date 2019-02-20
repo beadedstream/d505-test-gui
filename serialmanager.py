@@ -23,7 +23,8 @@ class SerialManager(QObject):
     def send_command(self, command):
         if self.ser.is_open:
             self.flush_buffers()
-            self.ser.write(command.encode())
+            command = (command + "\r\n").encode()
+            self.ser.write(command)
             data = self.ser.read_until(b"\r\n> ").decode()
             self.data_ready.emit(data)
         else:
@@ -93,7 +94,7 @@ class SerialManager(QObject):
 
     def open_port(self, port):
         self.ser.close()
-        self.ser = serial.Serial(port, 115200, timeout=90,
+        self.ser = serial.Serial(port, 115200, timeout=45,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
 

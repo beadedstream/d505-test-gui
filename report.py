@@ -8,12 +8,12 @@ class Report:
         self.timestamp = None
         self.date = f"{today.day:02d}-{today.month:02d}-{today.year}"
         # Data format: key | [value, units, test-passed]
+        self.test_result = "PASS"
         self.data = {
             "Timestamp": [None, "", True],
             "PCBA PN": [None, "", False],
             "PCBA SN": [None, "", False],
             "Tester ID": [None, "", False],
-            "Test Result": ["PASS", "", True],
             "Input Voltage": [None, "V", False],
             "Input Current": [None, "mA", False],
             "2V Supply": [None, "V", False],
@@ -42,7 +42,7 @@ class Report:
             self.data[data_key] = [data_value, "", passed]
 
         if (not passed):
-            self.data["Test Result"] = ["FAIL", "", False]
+            self.test_result = "FAIL"
 
     def set_file_location(self, file_path):
         """Sets the file path for the report's save location."""
@@ -64,6 +64,7 @@ class Report:
             self.file_path,
             f"{ts}-ID-{self.data['Tester ID'][0]}.txt")
         f = open(name, "w")
+        f.write(f"Test Result              :{self.test_result:<20}\n")
         for key, value in self.data.items():
             v = str(value[0]) + " " + value[1]
             if value[2]:
