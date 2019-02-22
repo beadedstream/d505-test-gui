@@ -29,17 +29,30 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
-        self.addPage(Setup(self, test_utility, serial_manager, model, report))
-        self.addPage(WatchDog(self, test_utility, serial_manager, model,
-                              report))
-        self.addPage(OneWireMaster(self, test_utility, serial_manager, report))
-        self.addPage(CypressBLE(self, test_utility, serial_manager, report))
-        self.addPage(XmegaInterfaces(self, test_utility, serial_manager,
-                                     model, report))
-        self.addPage(UartPower(self, test_utility, serial_manager, report))
-        self.addPage(DeepSleep(self, test_utility, serial_manager, model,
-                               report))
-        self.addPage(FinalPage(test_utility, report))
+        setup_id = self.addPage(Setup(self, test_utility, serial_manager,
+                                      model, report))
+        watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
+                                            model, report))
+        one_wire_id = self.addPage(OneWireMaster(self, test_utility,
+                                                 serial_manager, report))
+        cypress_id = self.addPage(CypressBLE(self, test_utility,
+                                             serial_manager, report))
+        xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
+                                                serial_manager, model, report))
+        uart_id = self.addPage(UartPower(self, test_utility, serial_manager,
+                                         report))
+        deep_sleep_id = self.addPage(DeepSleep(self, test_utility,
+                                               serial_manager, model, report))
+        final_id = self.addPage(FinalPage(test_utility, report))
+
+        self.setup_page = self.page(setup_id)
+        self.watchdog_page = self.page(watchdog_id)
+        self.one_wire_page = self.page(one_wire_id)
+        self.cypress_page = self.page(cypress_id)
+        self.xmega_page = self.page(xmega_id)
+        self.uart_page = self.page(uart_id)
+        self.deep_sleep_page = self.page(deep_sleep_id)
+        self.final_page = self.page(final_id)
 
         self.tu = test_utility
         self.report = report
@@ -187,6 +200,7 @@ class Setup(QWizardPage):
     def parse_values(self):
         limits = ["Input Voltage", "Input Current", "2V Supply"]
         values = []
+        print("parsing values...")
         try:
             values.append(float(self.step_b_input.text()))
             values.append(float(self.step_c_input.text()))
@@ -351,8 +365,8 @@ class WatchDog(QWizardPage):
             QMessageBox.warning(self, "Warning",
                                 "Error in serial data, try this step again")
             return
-        bootloader_version = bootloader_version.strip("\n")
-        app_version = app_version.strip("\n")
+        bootloader_version = bootloader_version.strip("\r\n")
+        app_version = app_version.strip("\r\n")
         self.report.write_data("Xmega Bootloader Version", bootloader_version,
                                True)
         self.report.write_data("Xmega App Version", app_version, True)
@@ -538,7 +552,7 @@ class OneWireMaster(QWizardPage):
         pattern = "1WireMaster .*\n"
         at_version = re.search(pattern, data)
         if (at_version):
-            at_version_val = at_version.group().strip("\n")
+            at_version_val = at_version.group().strip("\r\n")
             self.report.write_data("ATtiny Version", at_version_val, True)
             self.one_wire_lbl.setText("Version recorded.")
             self.tu.xmega_prog_status.setText(
@@ -797,7 +811,7 @@ class XmegaInterfaces(QWizardPage):
     def verify_board_id(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_tac)
-        pattern = "([0-9A-Fa-f][0-9A-Fa-f]\s+){7}([0-9A-Fa-f][0-9A-Fa-f]){1}"
+        pattern = r"([0-9A-Fa-f][0-9A-Fa-f]\s+){7}([0-9A-Fa-f][0-9A-Fa-f]){1}"
         if (re.search(pattern, data)):
             board_id = re.search(pattern, data).group()
             if (board_id[-2:] == "28"):
@@ -874,7 +888,7 @@ class XmegaInterfaces(QWizardPage):
 
     def snow_depth(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "[0-9]+\scm"
+        pattern = r"[0-9]+\scm"
         if (re.search(pattern, data)):
             value = re.search(pattern, data).group()
             self.report.write_data("Snow Depth", value, True)

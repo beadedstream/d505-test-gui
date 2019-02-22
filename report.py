@@ -64,7 +64,7 @@ class Report:
             self.file_path,
             f"{ts}-ID-{self.data['Tester ID'][0]}.txt")
         f = open(name, "w")
-        f.write(f"Test Result              :{self.test_result:<20}\n")
+        f.write(f"Test Result              : {self.test_result:<20}\n")
         for key, value in self.data.items():
             v = str(value[0]) + " " + value[1]
             if value[2]:

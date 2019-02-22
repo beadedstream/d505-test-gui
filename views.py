@@ -24,6 +24,10 @@ ABOUT_TEXT = f"""
              """
 
 
+class InvalidMsgType(Exception):
+    pass
+
+
 class TestUtility(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -185,6 +189,21 @@ class TestUtility(QMainWindow):
         self.center()
         self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 
+    def create_messagebox(self, type, title, text, info_text):
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle(title)
+        msgbox.setText(text)
+        msgbox.setInformativeText(info_text)
+        if type == "Warning":
+            msgbox.setIcon(QMessageBox.Warning)
+        elif type == "Error":
+            msgbox.setIcon(QMessageBox.Error)
+        elif type == "Information":
+            msgbox.setIcon(QMessageBox.Information)
+        else:
+            raise InvalidMsgType
+        return msgbox
+
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
@@ -235,11 +254,16 @@ class TestUtility(QMainWindow):
             self.r.write_data("PCBA PN",
                               self.pcba_pn_input.currentText(), True)
         else:
-            QMessageBox.warning(self, "Warning", "Missing Value!")
+            self.err_msg = self.create_messagebox("Warning", "Error",
+                                                  "Error", "Missing value!")
+            self.err_msg.show()
             return
 
         if not self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0]:
-            QMessageBox.warning(self, "Warning", "Bad serial number!")
+            self.err_msg = self.create_messagebox("Warning", "Error",
+                                                  "Error",
+                                                  "Bad serial number!")
+            self.err_msg.show()
             return
 
         self.start_procedure()
