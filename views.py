@@ -132,8 +132,9 @@ class TestUtility(QMainWindow):
         self.pcba_pn_input.addItem("45321-02")
         self.pcba_pn_input.setFixedWidth(LINE_EDIT_WIDTH)
 
-        self.start_btn = QPushButton("Start", default=True)
+        self.start_btn = QPushButton("Start")
         self.start_btn.setFixedWidth(200)
+        self.start_btn.setAutoDefault(True)
         self.start_btn.clicked.connect(self.parse_values)
 
         self.logo_img = QPixmap("Images/h_logo.png")

@@ -1,4 +1,3 @@
-import time
 import re
 import os.path
 from PyQt5.QtWidgets import (
@@ -7,7 +6,7 @@ from PyQt5.QtWidgets import (
     QApplication
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal
 
 
 class D505(QWizard):
@@ -200,7 +199,6 @@ class Setup(QWizardPage):
     def parse_values(self):
         limits = ["Input Voltage", "Input Current", "2V Supply"]
         values = []
-        print("parsing values...")
         try:
             values.append(float(self.step_b_input.text()))
             values.append(float(self.step_c_input.text()))
@@ -211,7 +209,6 @@ class Setup(QWizardPage):
         for limit, value in zip(limits, values):
             self.report.write_data(limit, value,
                                    self.model.compare_to_limit(limit, value))
-        self.submit_button.setEnabled(False)
 
         # Update status values
         self.tu.input_v_status.setText(f"Input Voltage: {values[0]} V")
@@ -242,6 +239,7 @@ class Setup(QWizardPage):
         self.sm.data_ready.disconnect()
         self.is_complete = True
         self.complete_signal.emit()
+        self.submit_button.setEnabled(False)
 
     def isComplete(self):
         return self.is_complete
@@ -332,11 +330,17 @@ class WatchDog(QWizardPage):
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
+        self.d505.button(QWizard.NextButton).setAutoDefault(False)
         # Flag for tracking page completion and allowing the next button
         # to be re-enabled.
         self.is_complete = False
 
     def isComplete(self):
+        print("isComplete")
+        if self.is_complete:
+            print("Complete!")
+            self.d505.button(QWizard.CustomButton1).setDefault(False)
+            self.d505.button(QWizard.NextButton).setDefault(True)
         return self.is_complete
 
     def start_uart_tests(self):
@@ -398,6 +402,7 @@ class WatchDog(QWizardPage):
             self.tu.supply_5v_status.setStyleSheet(
                 D505.status_style_fail)
         self.command_signal.emit("5V")
+        self.supply_5v_input_btn.setEnabled(False)
 
     def uart_5v_handler(self, data):
         self.sm.data_ready.disconnect()
