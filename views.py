@@ -514,7 +514,7 @@ class TestUtility(QMainWindow):
         }
 
         for key, tac_port in tac_ports.items():
-            p = r"([a-fA-F0-9][a-fA-F0-9]\s+){5}([a-fA-F0-9][a-fA-F0-9]\s*){1}"
+            p = r"([a-fA-F0-9]){8}"
             if (re.fullmatch(p, tac_port.text())):
                 self.settings.setValue(key, tac_port.text())
 

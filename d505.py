@@ -336,9 +336,7 @@ class WatchDog(QWizardPage):
         self.is_complete = False
 
     def isComplete(self):
-        print("isComplete")
         if self.is_complete:
-            print("Complete!")
             self.d505.button(QWizard.CustomButton1).setDefault(False)
             self.d505.button(QWizard.NextButton).setDefault(True)
         return self.is_complete
@@ -840,10 +838,24 @@ class XmegaInterfaces(QWizardPage):
     def verify_tac(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.flash_test)
-        pattern = "T[1-4],3,0"
-        matches = re.findall(pattern, data)
-        if (not matches or len(matches) != 4):
-                self.report.write_data("TAC Ports", "FAIL", False)
+
+        print("Received data")
+
+        data = data.split("\n")
+        port1 = data[2][0:8]
+        port2 = data[7][0:8]
+        port3 = data[12][0:8]
+        port4 = data[17][0:8]
+
+        print("Parsed data")
+
+        if not (port1 == self.tu.settings.value("port1_tac_id") and
+                port2 == self.tu.settings.value("port2_tac_id") and
+                port3 == self.tu.settings.value("port3_tac_id") and
+                port4 == self.tu.settings.value("port4_tac_id")):
+            self.report.write_data("TAC Ports", "FAIL", False)
+            print("Failed!")
+
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking flash. . .")
