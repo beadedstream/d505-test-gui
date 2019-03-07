@@ -352,6 +352,9 @@ class TestUtility(QMainWindow):
         grid.addWidget(status_group, 0, 0, Qt.AlignTop)
         grid.addWidget(self.procedure, 0, 1)
 
+        # layout = QHBoxLayout()
+        # layout.addWidget(self.procedure)
+
         central_widget.setLayout(grid)
 
         self.setCentralWidget(central_widget)
@@ -554,6 +557,7 @@ class TestUtility(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication([])
+    app.setStyle("fusion")
     window = TestUtility()
     window.show()
     app.exit(app.exec_())

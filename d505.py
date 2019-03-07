@@ -29,6 +29,10 @@ class D505(QWizard):
 
         self.button(QWizard.NextButton).setEnabled(False)
 
+        # This fixes a bug in the default style which hides the QWizard
+        # buttons until the window is resized.
+        self.setWizardStyle(0)
+
         setup_id = self.addPage(Setup(self, test_utility, serial_manager,
                                       model, report))
         watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
