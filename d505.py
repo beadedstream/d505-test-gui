@@ -1,5 +1,6 @@
 import re
 import os.path
+import time
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
@@ -708,6 +709,7 @@ class XmegaInterfaces(QWizardPage):
     complete_signal = pyqtSignal()
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
+    imei_signal = pyqtSignal()
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -771,6 +773,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("bat_v")
 
     def verify_batv(self, data):
+        self.imei_signal.connect(self.sm.iridium_command)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_modem)
         pattern = "([0-9])+.([0-9])+"
@@ -788,16 +791,15 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking IMEI number. . .")
-        self.command_signal.emit("status")
+        self.imei_signal.emit()
 
     def verify_modem(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_board_id)
-        pattern = "Iridium modem IMEI : [0-9]+"
-        if (re.search(pattern, data)):
-            p = "[0-9]+"
-            line = re.search(pattern, data).group()
-            imei = re.search(p, line).group()
+        pattern = "([0-9]){15}"
+        m = re.search(pattern, data)
+        if (m):
+            imei = m.group()
             if (imei == self.tu.settings.value("iridium_imei")):
                 self.report.write_data("Iridium IMEI Match", imei, True)
             else:
@@ -839,22 +841,23 @@ class XmegaInterfaces(QWizardPage):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.flash_test)
 
-        print("Received data")
-
         data = data.split("\n")
-        port1 = data[2][0:8]
-        port2 = data[7][0:8]
-        port3 = data[12][0:8]
-        port4 = data[17][0:8]
 
-        print("Parsed data")
+        try:
+            port1 = data[2][0:8]
+            port2 = data[7][0:8]
+            port3 = data[12][0:8]
+            port4 = data[17][0:8]
 
-        if not (port1 == self.tu.settings.value("port1_tac_id") and
-                port2 == self.tu.settings.value("port2_tac_id") and
-                port3 == self.tu.settings.value("port3_tac_id") and
-                port4 == self.tu.settings.value("port4_tac_id")):
-            self.report.write_data("TAC Ports", "FAIL", False)
-            print("Failed!")
+            if not (port1 == self.tu.settings.value("port1_tac_id") and
+                    port2 == self.tu.settings.value("port2_tac_id") and
+                    port3 == self.tu.settings.value("port3_tac_id") and
+                    port4 == self.tu.settings.value("port4_tac_id")):
+                self.report.write_data("TAC Ports", "FAIL", False)
+
+        except IndexError:
+            QMessageBox.warning(self, "IMEI Error",
+                                "Serial error or malformed value")
 
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)

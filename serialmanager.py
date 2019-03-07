@@ -80,6 +80,24 @@ class SerialManager(QObject):
         else:
             self.no_port_sel.emit()
 
+    @pyqtSlot()
+    def iridium_command(self):
+        if self.ser.is_open:
+            self.ser.write(b"iridium\r\n")
+            time.sleep(2)
+            num_bytes = self.ser.in_waiting
+            self.ser.read(num_bytes)
+            self.ser.write(b"at+gsn\r\n")
+            time.sleep(2)
+            num_bytes = self.ser.in_waiting
+            data = self.ser.read(num_bytes).decode()
+            self.ser.write(b".\r\n")
+            time.sleep(2)
+            self.ser.read_until(b"\r\n>")
+            self.data_ready.emit(data)
+        else:
+            self.no_port_sel.emit()
+
     @pyqtSlot(int)
     def sleep(self, interval):
         time.sleep(interval)
