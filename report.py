@@ -22,7 +22,7 @@ class Report:
             "Xmega App Version": [None, "", False],
             "ATtiny Version": [None, "", False],
             "BLE Version": [None, "", False],
-            "Temp ID": [None, "", False],
+            "Board ID": [None, "", False],
             "Solar Charge Voltage": [None, "V", False],
             "Solar Charge Current": [None, "mA", False],
             "Deep Sleep Current": [None, "uA", False]
@@ -60,9 +60,9 @@ class Report:
         self.data["Timestamp"][0] = self.timestamp
         # Filename-friendly timestamp
         ts = self.timestamp.replace(":", "-")
-        name = path.join(
-            self.file_path,
-            f"{ts}-ID-{self.data['Tester ID'][0]}.txt")
+        sn = self.data["PCBA SN"][0]
+        id = self.data["Tester ID"][0]
+        name = path.join(self.file_path, f"{sn}_{ts}-ID-{id}.txt")
         f = open(name, "w")
         f.write(f"Test Result              : {self.test_result:<20}\n")
         for key, value in self.data.items():

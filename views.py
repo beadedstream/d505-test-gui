@@ -287,7 +287,7 @@ class TestUtility(QMainWindow):
         self.supply_2v_status = QLabel("2V Supply: _____V")
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
-        self.uart_off_status = QLabel("UART Off: _____ V")
+        self.uart_off_status = QLabel("5V Off: _____ V")
         self.xmega_prog_status = QLabel("Xmega Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
@@ -521,7 +521,9 @@ class TestUtility(QMainWindow):
             else:
                 QMessageBox.warning(self.settings_widget,
                                     "Warning!",
-                                    f"Bad TAC ID on Port {key[4]}!")
+                                    f"Bad TAC ID on Port {key[4]}!\n"
+                                    "IDs are 8 digit hex values.\n"
+                                    "E.g.: 000a5296")
                 return
 
         self.settings.setValue("iridium_imei", self.iridium_imei.text())

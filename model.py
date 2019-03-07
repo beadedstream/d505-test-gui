@@ -14,8 +14,8 @@ class Model:
         self.limits = {
             "v_input_min": 5.0,
             "v_input_max": 7.0,
-            "i_input_min": 3.5,
-            "i_input_max": 5.5,
+            "i_input_min": 0,
+            "i_input_max": 6.0,
             "2v_min": 1.90,
             "2v_max": 2.10,
             "5v_min": 4.90,
@@ -62,7 +62,7 @@ class Model:
 
         elif limit == "Input Current":
             return (value >= self.limits["i_input_min"] and
-                    value <= self.limits["i_input_max"])
+                    value < self.limits["i_input_max"])
 
         elif limit == "2V Supply":
             return (value >= self.limits["2v_min"] and
