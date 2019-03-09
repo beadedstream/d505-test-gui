@@ -1,6 +1,5 @@
 import re
 import os.path
-import time
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
@@ -33,28 +32,28 @@ class D505(QWizard):
         # buttons until the window is resized.
         self.setWizardStyle(0)
 
-        setup_id = self.addPage(Setup(self, test_utility, serial_manager,
-                                      model, report))
-        watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
-                                            model, report))
-        one_wire_id = self.addPage(OneWireMaster(self, test_utility,
-                                                 serial_manager, report))
-        cypress_id = self.addPage(CypressBLE(self, test_utility,
-                                             serial_manager, report))
-        xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
-                                                serial_manager, model, report))
-        uart_id = self.addPage(UartPower(self, test_utility, serial_manager,
-                                         report))
+        # setup_id = self.addPage(Setup(self, test_utility, serial_manager,
+        #                               model, report))
+        # watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
+        #                                     model, report))
+        # one_wire_id = self.addPage(OneWireMaster(self, test_utility,
+        #                                          serial_manager, report))
+        # cypress_id = self.addPage(CypressBLE(self, test_utility,
+        #                                      serial_manager, report))
+        # xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
+        #                                         serial_manager, model, report))
+        # uart_id = self.addPage(UartPower(self, test_utility, serial_manager,
+        #                                  report))
         deep_sleep_id = self.addPage(DeepSleep(self, test_utility,
                                                serial_manager, model, report))
         final_id = self.addPage(FinalPage(test_utility, report))
 
-        self.setup_page = self.page(setup_id)
-        self.watchdog_page = self.page(watchdog_id)
-        self.one_wire_page = self.page(one_wire_id)
-        self.cypress_page = self.page(cypress_id)
-        self.xmega_page = self.page(xmega_id)
-        self.uart_page = self.page(uart_id)
+        # self.setup_page = self.page(setup_id)
+        # self.watchdog_page = self.page(watchdog_id)
+        # self.one_wire_page = self.page(one_wire_id)
+        # self.cypress_page = self.page(cypress_id)
+        # self.xmega_page = self.page(xmega_id)
+        # self.uart_page = self.page(uart_id)
         self.deep_sleep_page = self.page(deep_sleep_id)
         self.final_page = self.page(final_id)
 
@@ -134,10 +133,6 @@ class Setup(QWizardPage):
         self.submit_button.clicked.connect(self.parse_values)
         self.submit_button.setFixedWidth(LINE_EDIT_WIDTH)
 
-        self.app0_pbar_lbl = QLabel("Set 'app 0'.")
-        self.app0_pbar_lbl.setFont(self.label_font)
-        self.app0_pbar = QProgressBar()
-
         self.btn_layout = QHBoxLayout()
         self.btn_layout.addStretch()
         self.btn_layout.addWidget(self.submit_button)
@@ -185,18 +180,7 @@ class Setup(QWizardPage):
         self.layout.addLayout(self.step_d_layout)
         self.layout.addSpacing(VERT_SPACING)
         self.layout.addLayout(self.btn_layout)
-        self.layout.addSpacing(VERT_SPACING)
-        self.layout.addWidget(self.app0_pbar_lbl)
-        self.layout.addSpacing(VERT_SPACING)
-        self.layout.addWidget(self.app0_pbar)
         self.layout.addStretch()
-
-        # group = QGroupBox()
-        # group.setLayout(self.layout)
-
-        # vbox = QVBoxLayout()
-        # vbox.addWidget(group)
-        # vbox.addStretch()
 
         self.setLayout(self.layout)
         self.setTitle("Setup")
@@ -204,8 +188,6 @@ class Setup(QWizardPage):
     def initializePage(self):
         # Flag for tracking page completion and allowing the next button
         # to be re-enabled.
-        self.command_signal.connect(self.sm.send_command)
-        self.sm.data_ready.connect(self.app_off)
         self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
 
@@ -246,18 +228,8 @@ class Setup(QWizardPage):
         else:
             self.tu.supply_2v_status.setStyleSheet(
                 D505.status_style_fail)
-        self.app0_pbar.setRange(0, 0)
-        self.app0_pbar_lbl.setText("Sending 'app 0' command...")
-        self.command_signal.emit("app 0")
-
-    def app_off(self, data):
-        self.sm.data_ready.disconnect()
-        self.app0_pbar.setRange(0, 1)
-        self.app0_pbar.setValue(1)
-        self.app0_pbar_lbl.setText("Sent 'app 0' command.")
         self.is_complete = True
         self.complete_signal.emit()
-        self.submit_button.setEnabled(False)
 
     def isComplete(self):
         return self.is_complete
@@ -284,21 +256,26 @@ class WatchDog(QWizardPage):
                                 " the programming was successful.  ")
         self.batch_lbl.setFont(self.label_font)
         self.batch_chkbx = QCheckBox()
-        self.batch_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
-                                        height: 20px}")
+        self.batch_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; "
+                                       "height: 20px}")
         self.batch_chkbx.clicked.connect(
             lambda: D505.checked(self.batch_lbl, self.batch_chkbx))
 
         self.xmega_disconnect_lbl = QLabel("Remove Xmega programmer from "
                                            "connector J2")
         self.xmega_disconnect_lbl.setFont(self.label_font)
-        self.xmega_disconnect_chkbox = QCheckBox()
-        self.xmega_disconnect_chkbox.setStyleSheet("QCheckBox::indicator \
+        self.xmega_disconnect_chkbx = QCheckBox()
+        self.xmega_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
                                                    {width: 20px; \
                                                    height: 20px}")
-        self.xmega_disconnect_chkbox.clicked.connect(self.reset_watchdog)
-        self.xmega_disconnect_chkbox.clicked.connect(self.start_uart_tests)
-        self.xmega_disconnect_chkbox.clicked.connect(self.update_progressbar)
+        self.xmega_disconnect_chkbx.clicked.connect(
+            lambda: D505.checked(self.xmega_disconnect_lbl,
+                                 self.xmega_disconnect_chkbx))
+        self.xmega_disconnect_chkbx.clicked.connect(self.start_uart_tests)
+
+        self.app0_pbar_lbl = QLabel("Set 'app 0'.")
+        self.app0_pbar_lbl.setFont(self.label_font)
+        self.app0_pbar = QProgressBar()
 
         self.watchdog_lbl = QLabel("Resetting watchdog...")
         self.watchdog_lbl.setFont(self.label_font)
@@ -330,7 +307,7 @@ class WatchDog(QWizardPage):
         self.xmega_disconnect_layout = QHBoxLayout()
         self.xmega_disconnect_layout.addStretch()
         self.xmega_disconnect_layout.addWidget(self.xmega_disconnect_lbl)
-        self.xmega_disconnect_layout.addWidget(self.xmega_disconnect_chkbox)
+        self.xmega_disconnect_layout.addWidget(self.xmega_disconnect_chkbx)
         self.xmega_disconnect_layout.addSpacing(288)
         self.xmega_disconnect_layout.addStretch()
 
@@ -347,6 +324,9 @@ class WatchDog(QWizardPage):
         self.layout.addLayout(self.batch_layout)
         self.layout.addSpacing(50)
         self.layout.addLayout(self.xmega_disconnect_layout)
+        self.layout.addSpacing(50)
+        self.layout.addWidget(self.app0_pbar_lbl)
+        self.layout.addWidget(self.app0_pbar)
         self.layout.addStretch()
         self.layout.addWidget(self.watchdog_lbl)
         self.layout.addWidget(self.watchdog_pbar)
@@ -366,6 +346,7 @@ class WatchDog(QWizardPage):
         self.command_signal.connect(self.sm.send_command)
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
+
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.d505.button(QWizard.NextButton).setAutoDefault(False)
         # Flag for tracking page completion and allowing the next button
@@ -379,15 +360,20 @@ class WatchDog(QWizardPage):
         return self.is_complete
 
     def start_uart_tests(self):
-        if self.xmega_disconnect_chkbox.isChecked():
-            self.xmega_disconnect_chkbox.setEnabled(False)
-            self.xmega_disconnect_lbl.setStyleSheet("QLabel {color: grey}")
+        self.sm.data_ready.connect(self.app_off)
+        self.app0_pbar.setRange(0, 0)
+        self.app0_pbar_lbl.setText("Sending 'app 0' command...")
+        self.command_signal.emit("app 0")
 
-    def update_progressbar(self):
-        self.watchdog_pbar.setRange(0, 0)
-
-    def reset_watchdog(self):
+    def app_off(self, data):
+        self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.watchdog_handler)
+
+        self.app0_pbar.setRange(0, 1)
+        self.app0_pbar.setValue(1)
+        self.app0_pbar_lbl.setText("Sent 'app 0' command.")
+
+        self.watchdog_pbar.setRange(0, 0)
         self.command_signal.emit("watchdog")
 
     def watchdog_handler(self, data):
@@ -489,7 +475,7 @@ class WatchDog(QWizardPage):
         self.report.write_data("UART Off", uart_off_val, value_pass)
 
         self.tu.uart_off_status.setText(
-            f"UART Off: {uart_off_val} V")
+            f"5 V Off: {uart_off_val} V")
         if (value_pass):
             self.tu.uart_off_status.setStyleSheet(
                 D505.status_style_pass)
@@ -821,7 +807,7 @@ class XmegaInterfaces(QWizardPage):
         else:
             self.report.write_data("Serial Match", "None", False)
             QMessageBox.warning(self, "Serial Error",
-                                "Serial error or malformed value")
+                                "Serial error or bad value")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Verifying battery voltage. . .")
@@ -842,7 +828,7 @@ class XmegaInterfaces(QWizardPage):
                 self.report.write_data("Bat V", bat_v, False)
         else:
             QMessageBox.warning(self, "BatV Error",
-                                "Serial error or malformed value")
+                                "Serial error or bad value")
             self.report.write_data("Bat V", "None", False)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -861,8 +847,8 @@ class XmegaInterfaces(QWizardPage):
             else:
                 self.report.write_data("Iridium IMEI Match", imei, False)
         else:
-            QMessageBox.warning(self, "Modem Error",
-                                "Serial error or malformed value")
+            QMessageBox.warning(self, "Iridium Modem Error",
+                                "Serial error or bad value")
             self.report.write_data("Iridium IMEI Match", "None", False)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -881,7 +867,7 @@ class XmegaInterfaces(QWizardPage):
                 self.report.write_data("Board ID", board_id, False)
         else:
             QMessageBox.warning(self, "Board ID Error",
-                                "Serial error or malformed value")
+                                "Serial error or bad value")
             self.report.write_data("Board ID", "None", False)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -913,7 +899,7 @@ class XmegaInterfaces(QWizardPage):
 
         except IndexError:
             QMessageBox.warning(self, "IMEI Error",
-                                "Serial error or malformed value")
+                                "Serial error or bad value")
 
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -973,7 +959,7 @@ class XmegaInterfaces(QWizardPage):
         else:
             self.report.write_data("Snow Depth", None, False)
             QMessageBox.warning(self, "Serial Error",
-                                "Serial error or malformed value")
+                                "Serial error or bad value")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.is_complete = True
@@ -999,11 +985,12 @@ class UartPower(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.uart_pwr_lbl = QLabel("Remove battery power.")
+        self.uart_pwr_lbl = QLabel("Ensure UART red power wire is connected "
+                                   "and then remove battery power.")
         self.uart_pwr_lbl.setFont(self.label_font)
         self.uart_pwr_chkbx = QCheckBox()
-        self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
-                                        height: 20px}")
+        self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; "
+                                          "height: 20px}")
         self.uart_pwr_chkbx.clicked.connect(
             lambda: D505.checked(self.uart_pwr_lbl, self.uart_pwr_chkbx))
         self.uart_pwr_chkbx.clicked.connect(self.verify_uart)
@@ -1121,24 +1108,28 @@ class DeepSleep(QWizardPage):
         self.setStyleSheet("QCheckBox::indicator {width: 20px;"
                            "height: 20px}")
 
-        self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off")
+        self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off.")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
         self.ble_chkbx.clicked.connect(self.send_commands)
         self.ble_chkbx.clicked.connect(
             lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
 
-        self.input_i_lbl = QLabel("Switch current meter to uA and record input"
-                                  " current")
+        self.input_i_lbl = QLabel()
+        self.input_i_lbl.setTextFormat(Qt.RichText)
         self.input_i_lbl.setFont(self.label_font)
+        self.input_i_lbl.setText(
+            "Switch current meter to <b>uA</b> and record input current.")
         self.input_i_input = QLineEdit()
         self.input_i_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.input_i_unit = QLabel("uA")
 
-        self.solar_lbl = QLabel("Switch current meter to mA and turn on the "
-                                " 'solar panel simulating power supply' \n"
-                                "(0.7 V with current limit set at 2 A).")
-        # self.solar_lbl.setWordWrap(True)
+        self.solar_lbl = QLabel()
+        self.solar_lbl.setTextFormat(Qt.RichText)
+        self.solar_lbl.setText(
+            "Switch current meter <font color='red'>back to mA.</font><br/>"
+            "Turn on solar panel simulating power supply.<br/>"
+            "Use 0.7 V with the current limit set at 2 A.")
         self.solar_lbl.setFont(self.label_font)
         self.solar_chkbx = QCheckBox()
         self.solar_chkbx.clicked.connect(lambda: D505.checked(

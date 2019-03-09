@@ -18,14 +18,14 @@ class Model:
             "i_input_max": 6.0,
             "2v_min": 1.90,
             "2v_max": 2.10,
-            "5v_min": 4.90,
-            "5v_max": 5.10,
+            "5v_min": 4.85,
+            "5v_max": 5.15,
             "5v_uart_tolerance": 0.02,
             "5v_uart_off": 0.3,
             "bat_v_tolerance": 0.10,
-            "deep_sleep_min": 60,
+            "deep_sleep_min": 30,
             "deep_sleep_max": 70,
-            "solar_charge_i": 50
+            "solar_charge_i": 40
         }
         self.tac = {
             "tac1": None,
@@ -102,7 +102,7 @@ class Model:
                     value <= self.limits["deep_sleep_max"])
 
         elif limit == "Solar Current":
-            return (value > self.limits["solar_charge_i"])
+            return (value >= self.limits["solar_charge_i"])
 
         else:
             raise InvalidLimit

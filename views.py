@@ -185,8 +185,8 @@ class TestUtility(QMainWindow):
 
         self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
-        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        # self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        # self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.center()
         self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 
@@ -250,20 +250,25 @@ class TestUtility(QMainWindow):
         self.pcba_sn = self.pcba_sn_input.text()
 
         if (self.tester_id and self.pcba_pn and self.pcba_sn):
-            self.r.write_data("Tester ID", self.tester_id_input.text(), True)
-            self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
-            self.r.write_data("PCBA PN",
-                              self.pcba_pn_input.currentText(), True)
+
+            # The serial number should be eight characters long and start with
+            # the specific prefix for the given product.
+            if (self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0] and
+                    len(self.pcba_sn) == 8):
+                self.r.write_data("Tester ID", self.tester_id_input.text(),
+                                  True)
+                self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
+                self.r.write_data("PCBA PN",
+                                  self.pcba_pn_input.currentText(), True)
+            else:
+                self.err_msg = self.create_messagebox("Warning", "Error",
+                                                      "Error",
+                                                      "Bad serial number!")
+                self.err_msg.show()
+                return
         else:
             self.err_msg = self.create_messagebox("Warning", "Error",
                                                   "Error", "Missing value!")
-            self.err_msg.show()
-            return
-
-        if not self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0]:
-            self.err_msg = self.create_messagebox("Warning", "Error",
-                                                  "Error",
-                                                  "Bad serial number!")
             self.err_msg.show()
             return
 
