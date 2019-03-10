@@ -3,6 +3,7 @@ import d505
 import serialmanager
 import model
 import report
+import avr
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
@@ -59,6 +60,12 @@ class TestUtility(QMainWindow):
         self.sm.moveToThread(self.serial_thread)
         self.sm.no_port_sel.connect(self.port_warning)
         self.serial_thread.start()
+
+        temp_path = r"C:\Users\samuel\Documents\BeadedStream GUI\installation_files"
+        self.flash = avr.FlashD505(temp_path)
+        self.flash_thread = QThread()
+        self.flash.moveToThread(self.flash_thread)
+        self.flash_thread.start()
 
         self.m = model.Model()
         self.r = report.Report()
@@ -349,7 +356,8 @@ class TestUtility(QMainWindow):
         # corresponds to the part number. Create an instance of it passing it
         # the instances of test_utility, model, serial_manager and report.
         self.procedure = self.product_data[self.pcba_pn][1](self, self.m,
-                                                            self.sm, self.r)
+                                                            self.sm, self.r,
+                                                            self.flash)
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 5)
