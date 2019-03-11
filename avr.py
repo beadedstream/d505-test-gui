@@ -1,5 +1,5 @@
-import os
-from subprocess import check_output
+from pathlib import Path
+import subprocess
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
@@ -8,23 +8,57 @@ class FlashD505(QObject):
     command_failed = pyqtSignal(str)
     flash_finished = pyqtSignal()
 
-    def __init__(self, install_files_path):
+    def __init__(self, atprogram_path, install_files_path):
         super().__init__()
-        os.chdir(install_files_path)
-        chip_erase = "atprogram -t avrispmk2 -i pdi -d atxmega256a3 chiperase"
-        prog_boot = ("atprogram -t avrispmk2 -i pdi -d atxmega256a3 program"
-                     " --flash -f boot-section.hex --format hex --verify")
-        prog_app = ("atprogram -t avrispmk2 -i pdi -d atxmega256a3 program"
-                     " --flash -f  app-section.hex --format hex --verify")
-        prog_main = ("atprogram -t avrispmk2 -i pdi -d atxmega256a3 program"
-                    " --flash -f  main-app.hex --format hex --verify")
-        write_fuses = ("atprogram -t avrispmk2 -i pdi -d atxmega256a3  write"
-                       " --fuses --values FF00BDFFFEDE")
-        write_lockbits = ("atprogram -t avrispmk2 -i pdi -d atxmega256a3  write"
-                          " --lockbits --values FC")
+
+        boot_file = str(Path.joinpath(install_files_path, "boot-section.hex"))
+        app_file = str(Path.joinpath(install_files_path, "app-section.hex"))
+        main_file = str(Path.joinpath(install_files_path, "main-app.hex"))
+
+        chip_erase = [atprogram_path,
+                      "-t", "avrispmk2",
+                      "-i", "pdi",
+                      "-d", "atxmega256a3",
+                      "chiperase"]
+        prog_boot = [atprogram_path,
+                     "-t", "avrispmk2",
+                     "-i", "pdi",
+                     "-d", "atxmega256a3",
+                     "program",
+                     "--flash", "-f", boot_file,
+                     "--format", "hex",
+                     "--verify"]
+        prog_app = [atprogram_path,
+                    "-t", "avrispmk2",
+                    "-i", "pdi",
+                    "-d", "atxmega256a3",
+                    "program",
+                    "--flash", "-f", app_file,
+                    "--format", "hex",
+                    "--verify"]
+        prog_main = [atprogram_path,
+                     "-t", "avrispmk2",
+                     "-i", "pdi",
+                     "-d", "atxmega256a3",
+                     "program",
+                     "--flash", "-f", main_file,
+                     "--format", "hex",
+                     "--verify"]
+        write_fuses = [atprogram_path,
+                       "-t", "avrispmk2",
+                       "-i", "pdi",
+                       "-d", "atxmega256a3",
+                       "write",
+                       "--fuses", "--values", "FF00BDFFFEDE"]
+        write_lockbits = [atprogram_path,
+                          "-t", "avrispmk2",
+                          "-i", "pdi",
+                          "-d", "atxmega256a3",
+                          "write",
+                          "--lockbits", "--values", "FC"]
 
         # Command status is for the subsequent step
-        self.commands = {"chip_erase": chip_erase, 
+        self.commands = {"chip_erase": chip_erase,
                          "prog_boot": prog_boot,
                          "prog_app": prog_app,
                          "prog_main": prog_main,
@@ -36,7 +70,7 @@ class FlashD505(QObject):
 
         for cmd_text, cmd in self.commands.items():
             try:
-                status = check_output(cmd, shell=True).decode()
+                status = subprocess.check_output(cmd).decode()
 
                 if "Firmware check OK" in status:
                     self.command_succeeded.emit(cmd_text)
@@ -44,7 +78,7 @@ class FlashD505(QObject):
                     self.command_failed.emit(cmd_text)
                     break
 
-            except ValueError:
+            except (ValueError, subprocess.CalledProcessError) as err:
                 self.command_failed.emit(cmd_text)
                 break
 

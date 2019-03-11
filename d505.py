@@ -1,12 +1,14 @@
 import re
 import os.path
+import avr
+from pathlib import Path
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
     QApplication
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class D505(QWizard):
@@ -15,7 +17,7 @@ class D505(QWizard):
     status_style_fail = """QLabel {background: #ff5c33;
                         border: 2px solid grey; font-size: 20px}"""
 
-    def __init__(self, test_utility, model, serial_manager, report, flash):
+    def __init__(self, test_utility, model, serial_manager, report):
         super().__init__()
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)
@@ -35,7 +37,7 @@ class D505(QWizard):
         setup_id = self.addPage(Setup(self, test_utility, serial_manager,
                                       model, report))
         watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
-                                            model, report, flash))
+                                            model, report))
         one_wire_id = self.addPage(OneWireMaster(self, test_utility,
                                                  serial_manager, report))
         cypress_id = self.addPage(CypressBLE(self, test_utility,
@@ -246,8 +248,7 @@ class WatchDog(QWizardPage):
     complete_signal = pyqtSignal()
     flash_signal = pyqtSignal()
 
-    def __init__(self, d505, test_utility, serial_manager, model, report,
-                 flash):
+    def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
 
         self.d505 = d505
@@ -255,7 +256,13 @@ class WatchDog(QWizardPage):
         self.sm = serial_manager
         self.report = report
         self.model = model
-        self.flash = flash
+
+        at_path = self.tu.settings.value("atprogram_file_path")
+        in_path = Path(self.tu.settings.value("install_file_path"))
+        self.flash = avr.FlashD505(at_path, in_path)
+        self.flash_thread = QThread()
+        self.flash.moveToThread(self.flash_thread)
+        self.flash_thread.start()
 
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
@@ -385,6 +392,8 @@ class WatchDog(QWizardPage):
         if self.is_complete:
             self.d505.button(QWizard.CustomButton1).setDefault(False)
             self.d505.button(QWizard.NextButton).setDefault(True)
+            self.flash_thread.quit()
+            self.flash_thread.wait()
         return self.is_complete
 
     def start_flash(self):
@@ -399,11 +408,12 @@ class WatchDog(QWizardPage):
         self.batch_pbar.setValue(self.flash_counter)
 
     def flash_failed(self, cmd_text):
-        QMessageBox.error(self, "Flashing D505", f"Command {cmd_text} failed!")
-        self.D505.unchecked(self.batch_lbl, self.batch_chkbx)   
+        QMessageBox.warning(self, "Flashing D505",
+                            f"Command {cmd_text} failed!")
+        self.D505.unchecked(self.batch_lbl, self.batch_chkbx)
 
     def flash_finished(self):
-        self.xmega_disconnect_chkbx.setEnabled(True)    
+        self.xmega_disconnect_chkbx.setEnabled(True)
 
     def start_uart_tests(self):
         self.sm.data_ready.connect(self.app_off)
