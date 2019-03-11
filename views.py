@@ -3,6 +3,7 @@ import d505
 import serialmanager
 import model
 import report
+import sys
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
@@ -33,6 +34,8 @@ class TestUtility(QMainWindow):
         super().__init__()
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
+        self.config_font = QFont(self.system_font, 12)
+        self.config_path_font = QFont(self.system_font, 12, -1, True)
 
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
@@ -47,7 +50,9 @@ class TestUtility(QMainWindow):
             "lon_start": "123 02 W",
             "lon_stop": "123 05 W",
             "hex_file_path": "/path/to/hex/file",
-            "report_file_path": "/path/to/report/folder"
+            "report_file_path": "/path/to/report/folder",
+            "atprogram_file_path": "/path/to/atprogram.exe",
+            "install_file_path": "/path/to/install_files"
         }
 
         for key in settings_defaults:
@@ -370,12 +375,16 @@ class TestUtility(QMainWindow):
         self.settings_widget = QDialog(self)
 
         port1_lbl = QLabel("Port 1 TAC ID:")
+        port1_lbl.setFont(self.config_font)
         self.port1_tac_id = QLineEdit(self.settings.value("port1_tac_id"))
         port2_lbl = QLabel("Port 2 TAC ID:")
+        port2_lbl.setFont(self.config_font)
         self.port2_tac_id = QLineEdit(self.settings.value("port2_tac_id"))
         port3_lbl = QLabel("Port 3 TAC ID:")
+        port3_lbl.setFont(self.config_font)
         self.port3_tac_id = QLineEdit(self.settings.value("port3_tac_id"))
         port4_lbl = QLabel("Port 4 TAC ID:")
+        port4_lbl.setFont(self.config_font)
         self.port4_tac_id = QLineEdit(self.settings.value("port4_tac_id"))
 
         port_layout = QGridLayout()
@@ -402,9 +411,11 @@ class TestUtility(QMainWindow):
 
         self.lat_start = QLineEdit(self.settings.value("lat_start"))
         lat_lbl = QLabel("to")
+        lat_lbl.setFont(self.config_font)
         self.lat_stop = QLineEdit(self.settings.value("lat_stop"))
         self.lon_start = QLineEdit(self.settings.value("lon_start"))
         lon_lbl = QLabel("to")
+        lon_lbl.setFont(self.config_font)
         self.lon_stop = QLineEdit(self.settings.value("lon_stop"))
 
         lat_layout = QHBoxLayout()
@@ -428,13 +439,36 @@ class TestUtility(QMainWindow):
         self.hex_btn.setFixedWidth(FILE_BTN_WIDTH)
         self.hex_btn.clicked.connect(self.choose_hex_file)
         self.hex_lbl = QLabel("Choose hex file: ")
+        self.hex_lbl.setFont(self.config_font)
         self.hex_path_lbl = QLabel(self.settings.value("hex_file_path"))
+        self.hex_path_lbl.setFont(self.config_path_font)
 
         self.report_btn = QPushButton("[...]")
         self.report_btn.setFixedWidth(FILE_BTN_WIDTH)
         self.report_btn.clicked.connect(self.set_report_location)
         self.report_lbl = QLabel("Set report save location: ")
+        self.report_lbl.setFont(self.config_font)
         self.report_path_lbl = QLabel(self.settings.value("report_file_path"))
+        self.report_path_lbl.setFont(self.config_path_font)
+
+        self.atprogram_btn = QPushButton("[...]")
+        self.atprogram_btn.setFixedWidth(FILE_BTN_WIDTH)
+        self.atprogram_btn.clicked.connect(self.choose_atprogram_file)
+        self.atprogram_lbl = QLabel("Select atprogram.exe.")
+        self.atprogram_lbl.setFont(self.config_font)
+        self.atprogram_path_lbl = QLabel(self.settings.value(
+            "atprogram_file_path"))
+        self.atprogram_path_lbl.setFont(self.config_path_font)
+
+        self.install_btn = QPushButton("[...]")
+        self.install_btn.setFixedWidth(FILE_BTN_WIDTH)
+        self.install_btn.clicked.connect(self.set_install_dir)
+        self.install_lbl = QLabel("Select the directory of the "
+                                  "installation files.")
+        self.install_lbl.setFont(self.config_font)
+        self.install_file_path_lbl = QLabel(self.settings.value(
+            "install_file_path"))
+        self.install_file_path_lbl.setFont(self.config_path_font)
 
         save_loc_layout = QGridLayout()
         save_loc_layout.addWidget(self.hex_lbl, 0, 0)
@@ -443,24 +477,15 @@ class TestUtility(QMainWindow):
         save_loc_layout.addWidget(self.report_lbl, 2, 0)
         save_loc_layout.addWidget(self.report_btn, 2, 1)
         save_loc_layout.addWidget(self.report_path_lbl, 3, 0)
+        save_loc_layout.addWidget(self.atprogram_lbl, 4, 0)
+        save_loc_layout.addWidget(self.atprogram_btn, 4, 1)
+        save_loc_layout.addWidget(self.atprogram_path_lbl, 5, 0)
+        save_loc_layout.addWidget(self.install_lbl, 6, 0)
+        save_loc_layout.addWidget(self.install_btn, 6, 1)
+        save_loc_layout.addWidget(self.install_file_path_lbl, 7, 0)
 
         save_loc_group = QGroupBox("Save Locations")
         save_loc_group.setLayout(save_loc_layout)
-
-        # self.theme_group = QGroupBox("Color Themes")
-
-        # self.default = QRadioButton("Default")
-        # self.dark = QRadioButton("Dark")
-        # self.light = QRadioButton("Light")
-
-        # self.default.setChecked(True)
-
-        # self.theme_layout = QVBoxLayout()
-        # self.theme_layout.addWidget(self.default)
-        # self.theme_layout.addWidget(self.dark)
-        # self.theme_layout.addWidget(self.light)
-
-        # self.theme_group.setLayout(self.theme_layout)
 
         apply_btn = QPushButton("Apply Settings")
         apply_btn.clicked.connect(self.apply_settings)
@@ -485,14 +510,13 @@ class TestUtility(QMainWindow):
         grid = QGridLayout()
         grid.addLayout(hbox_top, 0, 0)
         grid.addLayout(hbox_bottom, 1, 0)
-        # grid.addWidget(self.theme_group, 1, 1)
         grid.addLayout(button_layout, 2, 0)
         grid.setHorizontalSpacing(100)
 
         self.settings_widget.setLayout(grid)
         self.settings_widget.setWindowTitle("D505 Configuration Settings")
         self.settings_widget.show()
-        self.settings_widget.resize(800, 200)
+        # self.settings_widget.resize(800, 600)
 
     def choose_hex_file(self):
         hex_file_path = QFileDialog.getOpenFileName(
@@ -509,6 +533,22 @@ class TestUtility(QMainWindow):
             "Select report save location"
         )
         self.report_path_lbl.setText(report_dir)
+
+    def choose_atprogram_file(self):
+        atprogram_file_path = QFileDialog.getOpenFileName(
+            self,
+            "Select atprogram.exe",
+            "",
+            "Application (*.exe)"
+        )[0]
+        self.atprogram_path_lbl.setText(atprogram_file_path)
+
+    def set_install_dir(self):
+        install_file_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Select the directory of the installation hex files."
+        )
+        self.install_file_path_lbl.setText(install_file_dir)
 
     def cancel_settings(self):
         self.settings_widget.close()
@@ -541,6 +581,10 @@ class TestUtility(QMainWindow):
         self.settings.setValue("lon_stop", self.lon_stop.text())
         self.settings.setValue("hex_file_path", self.hex_path_lbl.text())
         self.settings.setValue("report_file_path", self.report_path_lbl.text())
+        self.settings.setValue("atprogram_file_path",
+                               self.atprogram_path_lbl.text())
+        self.settings.setValue("install_file_path",
+                               self.install_file_path_lbl.text())
 
         QMessageBox.information(self.settings_widget, "Information",
                                 "Settings applied!")
@@ -565,4 +609,4 @@ if __name__ == "__main__":
     app.setStyle("fusion")
     window = TestUtility()
     window.show()
-    app.exit(app.exec_())
+    sys.exit(app.exec_())
