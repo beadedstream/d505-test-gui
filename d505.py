@@ -86,6 +86,7 @@ class D505(QWizard):
     def unchecked(lbl, chkbx):
         if chkbx.isChecked():
             chkbx.setEnabled(True)
+            chkbx.setChecked(False)
             lbl.setStyleSheet("QLabel {color: black}")
 
 
@@ -402,7 +403,6 @@ class WatchDog(QWizardPage):
         self.flash_signal.emit()
 
     def flash_update(self, cmd_text):
-        print(self.batch_pbar_lbl.text())
         self.batch_pbar_lbl.setText(self.flash_statuses[cmd_text])
         self.flash_counter += 1
         self.batch_pbar.setValue(self.flash_counter)
@@ -410,7 +410,8 @@ class WatchDog(QWizardPage):
     def flash_failed(self, cmd_text):
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
-        self.D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        self.batch_pbar_lbl.setText("Flash Xmega")
 
     def flash_finished(self):
         self.xmega_disconnect_chkbx.setEnabled(True)
@@ -807,6 +808,7 @@ class XmegaInterfaces(QWizardPage):
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
     imei_signal = pyqtSignal()
+    flash_test_signal = pyqtSignal()
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -840,8 +842,14 @@ class XmegaInterfaces(QWizardPage):
         self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
+        self.flash_test_signal.connect(self.sm.flash_test)
+
         self.sm.data_ready.connect(self.serial_written)
+        self.sm.flash_test_succeeded.connect(self.flash_success)
+        self.sm.flash_test_failed.connect(self.flash_fail)
+
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
+
         self.xmega_lbl.setText("Checking serial number. . .")
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
@@ -874,7 +882,6 @@ class XmegaInterfaces(QWizardPage):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_modem)
         pattern = "([0-9])+.([0-9])+"
-        print(data)
         if (re.search(pattern, data)):
             bat_v = float(re.search(pattern, data).group())
             value_pass = self.model.compare_to_limit("Bat V", bat_v)
@@ -936,9 +943,6 @@ class XmegaInterfaces(QWizardPage):
     #     # Disabled because cannot test inside. Talk to customer
 
     def verify_tac(self, data):
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.flash_test)
-
         data = data.split("\n")
 
         try:
@@ -960,35 +964,46 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking flash. . .")
-        self.command_signal.emit("flash_test")
+        self.flash_test_signal.emit()
 
-    def flash_test(self, data):
+    def flash_success(self):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm_set)
-        # Add flash checking after what a failure mode looks like is defined.
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Testing alarm. . .")
         self.command_signal.emit("rtc-set 030719 115955")
 
+    def flash_fail(self):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.rtc_alarm_set)
+        QMessageBox.warning(self, "Flash", "Flash test failed!")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        # set report value
+        self.xmega_lbl.setText("Testing alarm. . .")
+        self.command_signal.emit("rtc-set 030719 115950")
+
     def rtc_alarm_set(self, data):
+        print(data)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm)
         self.command_signal.emit("rtc-alarm 12:00")
 
     def rtc_alarm(self, data):
+        print(data)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_check_off)
         self.command_signal.emit("rtc-alarmed")
 
     def rtc_check_off(self, data):
+        print(data)
         self.sm.data_ready.disconnect()
         self.sleep_signal.connect(self.sm.sleep)
         self.sm.sleep_finished.connect(self.rtc_wait)
-        print(data)
         if "0" not in data:
             self.report.write_data("RTC Alarm", "", False)
-        self.sleep_signal.emit(5)
+        self.sleep_signal.emit(11)
 
     def rtc_wait(self):
         self.sleep_signal.disconnect()
@@ -996,9 +1011,9 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("rtc-alarmed")
 
     def rtc_check_on(self, data):
+        print(data)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
-        print(data)
         if "1" not in data:
             self.report.write_data("RTC Alarm", "", False)
         self.xmega_pbar_counter += 1
@@ -1068,7 +1083,8 @@ class UartPower(QWizardPage):
         self.leds_lbl = QLabel("Remove UART power connection, reconnect the"
                                " battery & UART connections and verify the "
                                " green, red & blue LEDs blink in the "
-                               " appropriate sequence.")
+                               " appropriate sequence.\nReconnect serial"
+                               " port from file menu.")
         self.leds_lbl.setWordWrap(True)
         self.leds_lbl.setFont(self.label_font)
         self.leds_chkbx = QCheckBox()
