@@ -25,7 +25,9 @@ class Model:
             "bat_v_tolerance": 0.10,
             "deep_sleep_min": 30,
             "deep_sleep_max": 70,
-            "solar_charge_i": 40
+            "solar_i": 40,
+            "solar_v_min": 5,
+            "solar_v_max": 8
         }
         self.tac = {
             "tac1": None,
@@ -55,20 +57,20 @@ class Model:
         self.ser_port = port
 
     def compare_to_limit(self, limit, value):
-        if limit == "Input Voltage":
+        if limit == "input_v":
             self.input_v = value
             return (value >= self.limits["v_input_min"] and
                     value <= self.limits["v_input_max"])
 
-        elif limit == "Input Current":
+        elif limit == "input_i":
             return (value >= self.limits["i_input_min"] and
                     value < self.limits["i_input_max"])
 
-        elif limit == "2V Supply":
+        elif limit == "supply_2v":
             return (value >= self.limits["2v_min"] and
                     value <= self.limits["2v_max"])
 
-        elif limit == "5V Supply":
+        elif limit == "supply_5v":
             self.internal_5v = value
             if (value >= self.limits["5v_min"] and
                     value <= self.limits["5v_max"]):
@@ -76,7 +78,7 @@ class Model:
             else:
                 return False
 
-        elif limit == "5V UART":
+        elif limit == "uart_5v":
             if (self.internal_5v):
                 tolerance = self.limits["5v_uart_tolerance"]
                 max_v = (1 + tolerance) * self.internal_5v
@@ -85,10 +87,10 @@ class Model:
             else:
                 raise ValueNotSet
 
-        elif limit == "UART Off":
+        elif limit == "off_5v":
             return (value < self.limits["5v_uart_off"])
 
-        elif limit == "Bat V":
+        elif limit == "bat_v":
             if (self.input_v):
                 tolerance = self.limits["bat_v_tolerance"]
                 max_v = (1 + tolerance) * self.input_v
@@ -97,12 +99,16 @@ class Model:
             else:
                 raise ValueNotSet
 
-        elif limit == "Deep Sleep Current":
+        elif limit == "deep_sleep_i":
             return (value >= self.limits["deep_sleep_min"] and
                     value <= self.limits["deep_sleep_max"])
 
-        elif limit == "Solar Current":
-            return (value >= self.limits["solar_charge_i"])
+        elif limit == "solar_v":
+            return (value >= self.limits["solar_v_min"] and
+                    value <= self.limits["solar_v_max"])
+
+        elif limit == "solar_i":
+            return (value >= self.limits["solar_i"])
 
         else:
             raise InvalidLimit

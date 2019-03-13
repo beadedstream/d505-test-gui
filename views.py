@@ -260,11 +260,11 @@ class TestUtility(QMainWindow):
             # the specific prefix for the given product.
             if (self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0] and
                     len(self.pcba_sn) == 8):
-                self.r.write_data("Tester ID", self.tester_id_input.text(),
-                                  True)
-                self.r.write_data("PCBA SN", self.pcba_sn_input.text(), True)
-                self.r.write_data("PCBA PN",
-                                  self.pcba_pn_input.currentText(), True)
+                self.r.write_data("tester_id", self.tester_id_input.text(),
+                                  "PASS")
+                self.r.write_data("pcba_sn", self.pcba_sn_input.text(), "PASS")
+                self.r.write_data("pcba_pn",
+                                  self.pcba_pn_input.currentText(), "PASS")
             else:
                 self.err_msg = self.create_messagebox("Warning", "Error",
                                                       "Error",

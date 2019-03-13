@@ -1,3 +1,4 @@
+import csv
 from os import path
 from datetime import datetime as dt
 
@@ -8,41 +9,49 @@ class Report:
         self.timestamp = None
         self.date = f"{today.day:02d}-{today.month:02d}-{today.year}"
         # Data format: key | [value, units, test-passed]
-        self.test_result = "PASS"
         self.data = {
-            "Timestamp": [None, "", True],
-            "PCBA PN": [None, "", False],
-            "PCBA SN": [None, "", False],
-            "Tester ID": [None, "", False],
-            "Input Voltage": [None, "V", False],
-            "Input Current": [None, "mA", False],
-            "2V Supply": [None, "V", False],
-            "5V Supply": [None, "V", False],
-            "Xmega Bootloader Version": [None, "", False],
-            "Xmega App Version": [None, "", False],
-            "ATtiny Version": [None, "", False],
-            "BLE Version": [None, "", False],
-            "Board ID": [None, "", False],
-            "Solar Charge Voltage": [None, "V", False],
-            "Solar Charge Current": [None, "mA", False],
-            "Deep Sleep Current": [None, "uA", False]
+            # key : ["Name", value, PASS/FAIL]
+            "result": ["Test Result", None, "PASS"],
+            "timestamp": ["Timestamp", None, "PASS"],
+            "pcba_sn": ["PCBA PN", None, None],
+            "pcba_pn": ["PCBA SN", None, None],
+            "tester_id": ["Tester ID", None, None],
+            "input_v": ["Input Voltage (V)", None, None],
+            "input_i": ["Input Current (mA)", None, None],
+            "supply_2v": ["2V Supply (V)", None, None],
+            "supply_5v": ["5V Supply (V)", None, None],
+            "uart_5v": ["UART 5V (V)", None, None],
+            "off_5v": ["5V Off (V)", None, None],
+            "xmega_bootloader": ["Xmega Bootloader Version", None, None],
+            "xmega_app": ["Xmega App Version", None, None],
+            "onewire_ver": ["1WireMaster Version", None, None],
+            "ble_ver": ["BLE Version", None, "", None],
+            "bat_v": ["Battery Voltage (V)", None, None],
+            "serial_match": ["Serial Number Match", None, None],
+            "iridium_match": ["Iridium Connected", None, None],
+            "board_id": ["Board ID", None, None],
+            "tac_connected": ["TAC Port Connected", None, None],
+            "flash_comms": ["Flash Communication", None, None],
+            "rtc_alarm": ["RTC Alarm", None, "PASS"],
+            "sonic_connected": ["Sonic Device Connected", None, None],
+            "solar_v": ["Solar Charge Voltage (V)", None, None],
+            "solar_i": ["Solar Charge Current (mA)", None, None],
+            "deep_sleep_i": ["Deep Sleep Current (uA)", None, None],
+            "uart_comms": ["UART Communication w/o Battery", None, None],
+            "led_test": ["LED Test", None, None]
         }
         self.file_path = ""
 
-    def write_data(self, data_key, data_value, passed):
+    def write_data(self, data_key, data_value, status):
         """Updates the data model with the received value and a bool
         indicating if the test passed or not. If the test failed and isn't
         already in the list of data, include it.
         """
-        if (data_key in self.data):
-            self.data[data_key][0] = data_value
-            self.data[data_key][2] = passed
+        if (status == "FAIL"):
+            self.data["result"][2] = "FAIL"
 
-        if (data_key not in self.data and not passed):
-            self.data[data_key] = [data_value, "", passed]
-
-        if (not passed):
-            self.test_result = "FAIL"
+        self.data[data_key][1] = data_value
+        self.data[data_key][2] = status
 
     def set_file_location(self, file_path):
         """Sets the file path for the report's save location."""
@@ -57,19 +66,20 @@ class Report:
             f" {today.hour:02d}:{today.minute:02d}"
             f":{today.second}"
         )
-        self.data["Timestamp"][0] = self.timestamp
+        self.data["timestamp"][1] = self.timestamp
         # Filename-friendly timestamp
         ts = self.timestamp.replace(":", "-")
-        sn = self.data["PCBA SN"][0]
-        id = self.data["Tester ID"][0]
-        name = path.join(self.file_path, f"{sn}_{ts}-ID-{id}.txt")
-        f = open(name, "w")
-        f.write(f"Test Result              : {self.test_result:<20}\n")
-        for key, value in self.data.items():
-            v = str(value[0]) + " " + value[1]
-            if value[2]:
-                f.write(f"{key:<25}: {v:<20}\n")
-            else:
-                f.write(f"{key:<25}: {v:<20} -- {'FAIL':<30}\n")
+        sn = self.data["pcba_sn"][1]
+        id = self.data["tester_id"][1]
+        name = path.join(self.file_path, f"{sn}_{ts}-ID-{id}.csv")
+        f = open(name, "w", newline='')
+        csvwriter = csv.writer(f)
 
+        csvwriter.writerow(["Name", "Value", "Pass/Fail"])
+
+        for _, test in self.data.items():
+            csvwriter.writerow([test[0], test[1], test[2]])
         f.close()
+
+        # Reset the report status
+        self.data["result"][2] = "PASS"

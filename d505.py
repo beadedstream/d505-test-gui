@@ -1,6 +1,7 @@
 import re
 import os.path
 import avr
+import time
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
@@ -200,7 +201,7 @@ class Setup(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
 
     def parse_values(self):
-        limits = ["Input Voltage", "Input Current", "2V Supply"]
+        limits = ["input_v", "input_i", "supply_2v"]
         values = []
         try:
             values.append(float(self.step_b_input.text()))
@@ -210,8 +211,10 @@ class Setup(QWizardPage):
             QMessageBox.warning(self, "Warning", "Bad input value!")
             return
         for limit, value in zip(limits, values):
-            self.report.write_data(limit, value,
-                                   self.model.compare_to_limit(limit, value))
+            if(self.model.compare_to_limit(limit, value)):
+                self.report.write_data(limit, value, "PASS")
+            else:
+                self.report.write_data(limit, value, "FAIL")
 
         # Update status values
         self.tu.input_v_status.setText(f"Input Voltage: {values[0]} V")
@@ -291,7 +294,8 @@ class WatchDog(QWizardPage):
         self.batch_pbar = QProgressBar()
 
         self.xmega_disconnect_lbl = QLabel("Remove Xmega programmer from "
-                                           "connector J2")
+                                           "connector J2. Ensure serial port "
+                                           "is connected in the serial menu.")
         self.xmega_disconnect_lbl.setFont(self.label_font)
         self.xmega_disconnect_chkbx = QCheckBox()
         self.xmega_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
@@ -302,14 +306,14 @@ class WatchDog(QWizardPage):
                                  self.xmega_disconnect_chkbx))
         self.xmega_disconnect_chkbx.clicked.connect(self.start_uart_tests)
 
-        self.app0_pbar_lbl = QLabel("Set 'app 0'.")
-        self.app0_pbar_lbl.setFont(self.label_font)
-        self.app0_pbar = QProgressBar()
-
         self.watchdog_pbar_lbl = QLabel("Resetting watchdog...")
         self.watchdog_pbar_lbl.setFont(self.label_font)
         self.watchdog_pbar = QProgressBar()
         self.watchdog_pbar.setRange(0, 1)
+
+        self.app0_pbar_lbl = QLabel("Set 'app 0'.")
+        self.app0_pbar_lbl.setFont(self.label_font)
+        self.app0_pbar = QProgressBar()
 
         self.supply_5v_input_lbl = QLabel("Measure and record the 5 V supply "
                                           "(bottom side of C55):")
@@ -361,8 +365,8 @@ class WatchDog(QWizardPage):
         self.grid.addLayout(self.batch_pbar_layout, 2, 0)
         self.grid.addWidget(self.xmega_disconnect_lbl, 3, 0)
         self.grid.addWidget(self.xmega_disconnect_chkbx, 3, 1)
-        self.grid.addLayout(self.app0_layout, 4, 0)
-        self.grid.addLayout(self.watchdog_layout, 5, 0)
+        self.grid.addLayout(self.watchdog_layout, 4, 0)
+        self.grid.addLayout(self.app0_layout, 5, 0)
         self.grid.addLayout(self.supply_5v_layout, 6, 0)
         self.grid.addLayout(self.supply_5v_pbar_layout, 7, 0)
 
@@ -393,8 +397,8 @@ class WatchDog(QWizardPage):
         if self.is_complete:
             self.d505.button(QWizard.CustomButton1).setDefault(False)
             self.d505.button(QWizard.NextButton).setDefault(True)
-            self.flash_thread.quit()
-            self.flash_thread.wait()
+            # self.flash_thread.quit()
+            # self.flash_thread.wait()
         return self.is_complete
 
     def start_flash(self):
@@ -415,43 +419,45 @@ class WatchDog(QWizardPage):
 
     def flash_finished(self):
         self.xmega_disconnect_chkbx.setEnabled(True)
+        self.flash_thread.quit()
+        self.flash_thread.wait()
 
     def start_uart_tests(self):
+        self.sm.data_ready.connect(self.watchdog_handler)
+        self.watchdog_pbar.setRange(0, 0)
+        self.command_signal.emit("watchdog")
+
+    def watchdog_handler(self, data):
+        self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.app_off)
+        self.watchdog_pbar.setRange(0, 1)
+        self.watchdog_pbar.setValue(1)
+        bl_pattern = "([0-9]+.[0-9a-zA-Z]+)"
+        app_pattern = "([0-9]+.[0-9a-zA-Z]+)"
+        try:
+            bootloader_version = re.search(bl_pattern, data).group()
+            app_version = re.search(app_pattern, data).group()
+        except AttributeError:
+            QMessageBox.warning(self, "Warning",
+                                "Error in serial data.")
+            return
+        bootloader_version = bootloader_version.strip("\r\n")
+        app_version = app_version.strip("\r\n")
+        self.report.write_data("xmega_bootloader", bootloader_version, "PASS")
+        self.report.write_data("xmega_app", app_version, "PASS")
+
         self.app0_pbar.setRange(0, 0)
         self.app0_pbar_lbl.setText("Sending 'app 0' command...")
         self.command_signal.emit("app 0")
 
     def app_off(self, data):
         self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.watchdog_handler)
+        self.sm.data_ready.connect(self.uart_5v1_handler)
 
         self.app0_pbar.setRange(0, 1)
         self.app0_pbar.setValue(1)
         self.app0_pbar_lbl.setText("Sent 'app 0' command.")
 
-        self.watchdog_pbar.setRange(0, 0)
-        self.command_signal.emit("watchdog")
-
-    def watchdog_handler(self, data):
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.uart_5v1_handler)
-        self.watchdog_pbar.setRange(0, 1)
-        self.watchdog_pbar.setValue(1)
-        bl_pattern = "bootloader version .*\n"
-        app_pattern = "datalogger version .*\n"
-        try:
-            bootloader_version = re.search(bl_pattern, data).group()
-            app_version = re.search(app_pattern, data).group()
-        except AttributeError:
-            QMessageBox.warning(self, "Warning",
-                                "Error in serial data, try this step again")
-            return
-        bootloader_version = bootloader_version.strip("\r\n")
-        app_version = app_version.strip("\r\n")
-        self.report.write_data("Xmega Bootloader Version", bootloader_version,
-                               True)
-        self.report.write_data("Xmega App Version", app_version, True)
         self.command_signal.emit("5V 1")
 
     def uart_5v1_handler(self, data):
@@ -468,17 +474,20 @@ class WatchDog(QWizardPage):
         except ValueError:
             QMessageBox.warning(self, "Warning", "Bad Input Value!")
             return
-        value_pass = self.model.compare_to_limit("5V Supply",
-                                                 supply_5v_val)
-        self.report.write_data("5V Supply", supply_5v_val, value_pass)
-        self.tu.supply_5v_status.setText(
-            f"5V Supply: {supply_5v_val} V")
-        if (value_pass):
+        value_pass = self.model.compare_to_limit("supply_5v", supply_5v_val)
+
+        if(value_pass):
+            self.report.write_data("supply_5v", supply_5v_val, "PASS")
             self.tu.supply_5v_status.setStyleSheet(
                 D505.status_style_pass)
         else:
+            self.report.write_data("supply_5v", supply_5v_val, "FAIL")
             self.tu.supply_5v_status.setStyleSheet(
                 D505.status_style_fail)
+
+        self.tu.supply_5v_status.setText(
+            f"5V Supply: {supply_5v_val} V")
+
         self.command_signal.emit("5V")
         self.supply_5v_input_btn.setEnabled(False)
 
@@ -490,20 +499,19 @@ class WatchDog(QWizardPage):
             uart_5v_val = float(data[1].strip("\n"))
         except ValueError:
             QMessageBox.warning(self, "Warning",
-                                "Error in serial data, try this step again")
+                                "Error in serial data.")
             return
 
-        value_pass = self.model.compare_to_limit("5V UART",
-                                                 uart_5v_val)
-        self.report.write_data("5V UART", uart_5v_val, value_pass)
+        value_pass = self.model.compare_to_limit("uart_5v", uart_5v_val)
+
+        if (value_pass):
+            self.report.write_data("uart_5v", uart_5v_val, "PASS")
+            self.tu.uart_5v_status.setStyleSheet(D505.status_style_pass)
+        else:
+            self.report.write_data("uart_5v", uart_5v_val, "FAIL")
+            self.tu.uart_5v_status.setStyleSheet(D505.status_style_fail)
 
         self.tu.uart_5v_status.setText(f"5V UART {uart_5v_val} V")
-        if (value_pass):
-            self.tu.uart_5v_status.setStyleSheet(
-                D505.status_style_pass)
-        else:
-            self.tu.uart_5v_status.setStyleSheet(
-                D505.status_style_fail)
         self.command_signal.emit("5V 0")
 
     def uart_5v0_handler(self, data):
@@ -526,19 +534,18 @@ class WatchDog(QWizardPage):
             uart_off_val = float(data[1].strip("\n"))
         except ValueError:
             QMessageBox.warning(self, "Warning",
-                                "Error in serial data, try this step again")
+                                "Error in serial data.")
             return
-        value_pass = self.model.compare_to_limit("UART Off", uart_off_val)
-        self.report.write_data("UART Off", uart_off_val, value_pass)
+        value_pass = self.model.compare_to_limit("off_5v", uart_off_val)
 
-        self.tu.uart_off_status.setText(
-            f"5 V Off: {uart_off_val} V")
         if (value_pass):
-            self.tu.uart_off_status.setStyleSheet(
-                D505.status_style_pass)
+            self.report.write_data("off_5v", uart_off_val, "PASS")
+            self.tu.uart_off_status.setStyleSheet(D505.status_style_pass)
         else:
-            self.tu.uart_off_status.setStyleSheet(
-                D505.status_style_fail)
+            self.report.write_data("off_5v", uart_off_val, "FAIL")
+            self.tu.uart_off_status.setStyleSheet(D505.status_style_fail)
+
+        self.tu.uart_off_status.setText(f"5 V Off: {uart_off_val} V")
         self.is_complete = True
         self.complete_signal.emit()
 
@@ -627,22 +634,18 @@ class OneWireMaster(QWizardPage):
 
     def record_version(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "1WireMaster .*\n"
-        at_version = re.search(pattern, data)
-        if (at_version):
-            at_version_val = at_version.group().strip("\r\n")
-            self.report.write_data("ATtiny Version", at_version_val, True)
+        pattern = "([0-9]+.[0-9a-zA-Z]+)"
+        onewire_version = re.search(pattern, data)
+        if (onewire_version):
+            onewire_version_val = onewire_version.group()
+            self.report.write_data("onewire_ver", onewire_version_val, "PASS")
             self.one_wire_lbl.setText("Version recorded.")
-            self.tu.xmega_prog_status.setText(
-                "Xmega Programming: PASS")
-            self.tu.xmega_prog_status.setStyleSheet(
-                D505.status_style_pass)
+            self.tu.xmega_prog_status.setText("Xmega Programming: PASS")
+            self.tu.xmega_prog_status.setStyleSheet(D505.status_style_pass)
         else:
-            self.report.write_data("ATtiny Version", "N/A", False)
-            self.tu.xmega_prog_status.setText(
-                "Xmega Programming: FAIL")
-            self.tu.xmega_prog_status.setStyleSheet(
-                D505.status_style_fail)
+            self.report.write_data("onewire_ver", "N/A", "FAIL")
+            self.tu.xmega_prog_status.setText("Xmega Programming: FAIL")
+            self.tu.xmega_prog_status.setStyleSheet(D505.status_style_fail)
             QMessageBox.warning(self, "XMega3", "Bad command response.")
 
         self.is_complete = True
@@ -709,6 +712,10 @@ class CypressBLE(QWizardPage):
         self.psoc_pbar_lbl = QLabel("PSoC version")
         self.psoc_pbar_lbl.setFont(QFont(self.system_font, 12))
 
+        self.psoc_layout = QVBoxLayout()
+        self.psoc_layout.addWidget(self.psoc_pbar_lbl)
+        self.psoc_layout.addWidget(self.psoc_pbar)
+
         self.grid = QGridLayout()
         self.grid.setHorizontalSpacing(25)
         self.grid.setVerticalSpacing(50)
@@ -723,8 +730,7 @@ class CypressBLE(QWizardPage):
         self.grid.addWidget(self.bt_comm_btn_pass, 3, 1)
         self.grid.addWidget(self.bt_comm_btn_fail, 3, 2)
         self.grid.addWidget(QLabel(), 4, 0)
-        self.grid.addWidget(self.psoc_pbar_lbl, 5, 0)
-        self.grid.addWidget(self.psoc_pbar, 6, 0)
+        self.grid.addLayout(self.psoc_layout, 5, 0)
 
         self.hbox = QHBoxLayout()
         self.hbox.addStretch()
@@ -788,10 +794,10 @@ class CypressBLE(QWizardPage):
         pattern = "([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
         if (version):
-            self.report.write_data("BLE Version", version.group(), True)
+            self.report.write_data("ble_ver", version.group(), "PASS")
         else:
             QMessageBox.warning(self, "PSOC Version", "Bad command response.")
-            self.report.write_data("BLE Version", "NONE", False)
+            self.report.write_data("ble_ver", "", "FAIL")
 
         self.psoc_pbar.setRange(0, 1)
         self.psoc_pbar.setValue(1)
@@ -865,13 +871,14 @@ class XmegaInterfaces(QWizardPage):
         if (re.search(pattern, data)):
             serial_num = re.search(pattern, data).group()
             if (serial_num == self.tu.pcba_sn):
-                self.report.write_data("Serial Match", serial_num, True)
+                self.report.write_data("serial_match", serial_num, "PASS")
             else:
-                self.report.write_data("Serial Match", serial_num, False)
+                self.report.write_data("serial_match", serial_num, "FAIL")
         else:
-            self.report.write_data("Serial Match", "None", False)
+            self.report.write_data("serial_match", "", "FAIL")
             QMessageBox.warning(self, "Serial Error",
                                 "Serial error or bad value")
+
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Verifying battery voltage. . .")
@@ -884,15 +891,16 @@ class XmegaInterfaces(QWizardPage):
         pattern = "([0-9])+.([0-9])+"
         if (re.search(pattern, data)):
             bat_v = float(re.search(pattern, data).group())
-            value_pass = self.model.compare_to_limit("Bat V", bat_v)
+            value_pass = self.model.compare_to_limit("bat_v", bat_v)
             if (value_pass):
-                self.report.write_data("Bat V", bat_v, True)
+                self.report.write_data("bat_v", bat_v, "PASS")
             else:
-                self.report.write_data("Bat V", bat_v, False)
+                self.report.write_data("bat_v", bat_v, "FAIL")
         else:
             QMessageBox.warning(self, "BatV Error",
                                 "Serial error or bad value")
-            self.report.write_data("Bat V", "None", False)
+            self.report.write_data("bat_v", "", "FAIL")
+
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking IMEI number. . .")
@@ -906,13 +914,14 @@ class XmegaInterfaces(QWizardPage):
         if (m):
             imei = m.group()
             if (imei == self.tu.settings.value("iridium_imei")):
-                self.report.write_data("Iridium IMEI Match", imei, True)
+                self.report.write_data("iridium_match", imei, "PASS")
             else:
-                self.report.write_data("Iridium IMEI Match", imei, False)
+                self.report.write_data("iridium_match", imei, "FAIL")
         else:
             QMessageBox.warning(self, "Iridium Modem Error",
                                 "Serial error or bad value")
-            self.report.write_data("Iridium IMEI Match", "None", False)
+            self.report.write_data("iridium_match", "", "FAIL")
+
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Verifying board id. . .")
@@ -925,13 +934,14 @@ class XmegaInterfaces(QWizardPage):
         if (re.search(pattern, data)):
             board_id = re.search(pattern, data).group()
             if (board_id[-2:] == "28"):
-                self.report.write_data("Board ID", board_id, True)
+                self.report.write_data("board_id", board_id, "PASS")
             else:
-                self.report.write_data("Board ID", board_id, False)
+                self.report.write_data("board_id", board_id, "FAIL")
         else:
             QMessageBox.warning(self, "Board ID Error",
                                 "Serial error or bad value")
-            self.report.write_data("Board ID", "None", False)
+            self.report.write_data("board_id", "", "FAIL")
+
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking TAC ports. . .")
@@ -955,10 +965,12 @@ class XmegaInterfaces(QWizardPage):
                     port2 == self.tu.settings.value("port2_tac_id") and
                     port3 == self.tu.settings.value("port3_tac_id") and
                     port4 == self.tu.settings.value("port4_tac_id")):
-                self.report.write_data("TAC Ports", "FAIL", False)
+                self.report.write_data("tac_connected", "", "FAIL")
+            else:
+                self.report.write_data("tac_connected", "", "PASS")
 
         except IndexError:
-            QMessageBox.warning(self, "IMEI Error",
+            QMessageBox.warning(self, "TAC Connection",
                                 "Serial error or bad value")
 
         self.xmega_pbar_counter += 1
@@ -971,6 +983,7 @@ class XmegaInterfaces(QWizardPage):
         self.sm.data_ready.connect(self.rtc_alarm_set)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.report.write_data("flash_comms", "", "PASS")
         self.xmega_lbl.setText("Testing alarm. . .")
         self.command_signal.emit("rtc-set 030719 115955")
 
@@ -978,32 +991,36 @@ class XmegaInterfaces(QWizardPage):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm_set)
         QMessageBox.warning(self, "Flash", "Flash test failed!")
+        self.report.write_data("flash_comms", "", "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         # set report value
         self.xmega_lbl.setText("Testing alarm. . .")
-        self.command_signal.emit("rtc-set 030719 115950")
+        self.command_signal.emit("rtc-set 030719 115955")
 
     def rtc_alarm_set(self, data):
-        print(data)
+        # print(data)
+        time.sleep(0.1)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm)
         self.command_signal.emit("rtc-alarm 12:00")
 
     def rtc_alarm(self, data):
-        print(data)
+        # print(data)
+        time.sleep(0.1)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_check_off)
         self.command_signal.emit("rtc-alarmed")
 
     def rtc_check_off(self, data):
-        print(data)
+        # print(data)
+        time.sleep(0.1)
         self.sm.data_ready.disconnect()
         self.sleep_signal.connect(self.sm.sleep)
         self.sm.sleep_finished.connect(self.rtc_wait)
         if "0" not in data:
-            self.report.write_data("RTC Alarm", "", False)
-        self.sleep_signal.emit(11)
+            self.report.write_data("rtc_alarm", "", "FAIL")
+        self.sleep_signal.emit(6)
 
     def rtc_wait(self):
         self.sleep_signal.disconnect()
@@ -1011,11 +1028,12 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("rtc-alarmed")
 
     def rtc_check_on(self, data):
-        print(data)
+        # print(data)
+        time.sleep(0.1)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
         if "1" not in data:
-            self.report.write_data("RTC Alarm", "", False)
+            self.report.write_data("rtc_alarm", "", "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking range finder. . .")
@@ -1026,10 +1044,10 @@ class XmegaInterfaces(QWizardPage):
         pattern = r"[0-9]+\scm"
         if (re.search(pattern, data)):
             value = re.search(pattern, data).group()
-            self.report.write_data("Snow Depth", value, True)
+            self.report.write_data("sonic_connected", value, "PASS")
         else:
-            self.report.write_data("Snow Depth", None, False)
-            QMessageBox.warning(self, "Serial Error",
+            self.report.write_data("sonic_connected", "", "FAIL")
+            QMessageBox.warning(self, "Sonic Connection",
                                 "Serial error or bad value")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -1142,15 +1160,17 @@ class UartPower(QWizardPage):
             self.uart_pbar.setRange(0, 1)
             self.uart_pbar.setValue(1)
             self.uart_pbar_lbl.setText("UART interface functional.")
+            self.report.write_data("uart_comms", "", "PASS")
         else:
             QMessageBox.warning(self, "UART Power", "Bad command response.")
-            self.report.write_data("UART Interface w/o batt", "NONE", False)
+            self.report.write_data("uart_comms", "", "FAIL")
 
     def isComplete(self):
         return self.is_complete
 
     def page_complete(self):
         self.tu.led_test_status.setText("LED Test: PASS")
+        self.report.write_data("led_test", "", "PASS")
         self.tu.led_test_status.setStyleSheet(
             D505.status_style_pass)
         self.is_complete = True
@@ -1304,15 +1324,31 @@ class DeepSleep(QWizardPage):
             QMessageBox.warning(self, "Warning", "Bad Input Value!")
             return
 
-        deep_sleep_i_pass = self.model.compare_to_limit("Deep Sleep Current",
+        deep_sleep_i_pass = self.model.compare_to_limit("deep_sleep_i",
                                                         deep_sleep_i)
-        solar_i_pass = self.model.compare_to_limit("Solar Current",
-                                                   solar_i)
+        solar_i_pass = self.model.compare_to_limit("solar_i", solar_i)
+        solar_v_pass = self.model.compare_to_limit("solar_v", solar_v)
 
-        self.report.write_data("Deep Sleep Current", deep_sleep_i,
-                               deep_sleep_i_pass)
-        self.report.write_data("Solar Charge Voltage", solar_v, True)
-        self.report.write_data("Solar Charge Current", solar_i, solar_i_pass)
+        if deep_sleep_i_pass:
+            self.report.write_data("deep_sleep_i", deep_sleep_i, "PASS")
+            self.tu.deep_sleep_i_status.setStyleSheet(D505.status_style_pass)
+        else:
+            self.report.write_data("deep_sleep_i", deep_sleep_i, "FAIL")
+            self.tu.deep_sleep_i_status.setStyleSheet(D505.status_style_fail)
+
+        if solar_i_pass:
+            self.report.write_data("solar_i", solar_i, "PASS")
+            self.tu.solar_charge_i_status.setStyleSheet(D505.status_style_pass)
+        else:
+            self.report.write_data("solar_i", solar_i, "FAIL")
+            self.tu.solar_charge_i_status.setStyleSheet(D505.status_style_fail)
+
+        if solar_v_pass:
+            self.report.write_data("solar_v", solar_v, "PASS")
+            self.tu.solar_charge_v_status.setStyleSheet(D505.status_style_pass)
+        else:
+            self.report.write_data("solar_v", solar_v, "FAIL")
+            self.tu.solar_charge_v_status.setStyleSheet(D505.status_style_fail)
 
         # Set status text values
         self.tu.deep_sleep_i_status.setText(
@@ -1321,23 +1357,6 @@ class DeepSleep(QWizardPage):
             f"Solar Charge Current: {solar_i} mA")
         self.tu.solar_charge_v_status.setText(
             f"Solar Charge Voltage: {solar_v} V")
-
-        if deep_sleep_i_pass:
-            self.tu.deep_sleep_i_status.setStyleSheet(
-                D505.status_style_pass)
-        else:
-            self.tu.deep_sleep_i_status.setStyleSheet(
-                D505.status_style_fail)
-
-        if solar_i_pass:
-            self.tu.solar_charge_i_status.setStyleSheet(
-                D505.status_style_pass)
-        else:
-            self.tu.solar_charge_i_status.setStyleSheet(
-                D505.status_style_fail)
-
-        self.tu.solar_charge_v_status.setStyleSheet(
-            D505.status_style_pass)
 
         self.submit_button.setEnabled(False)
         self.is_complete = True
@@ -1359,7 +1378,7 @@ class FinalPage(QWizardPage):
 
     def initializePage(self):
         # Check test result
-        test_result = self.report.test_result
+        test_result = self.report.data["result"][2]
 
         if test_result == "PASS":
             self.test_status = "Successful"
