@@ -371,7 +371,7 @@ class WatchDog(QWizardPage):
         self.grid.addLayout(self.supply_5v_pbar_layout, 7, 0)
 
         self.setLayout(self.grid)
-        self.setTitle("Watchdog Reset")
+        self.setTitle("Xmega Programming and Verification")
 
     def initializePage(self):
         self.command_signal.connect(self.sm.send_command)
@@ -435,6 +435,7 @@ class WatchDog(QWizardPage):
         pattern = "([0-9]+\.[0-9a-zA-Z]+)"
         try:
             matches = re.findall(pattern, data)
+            print(matches)
             bootloader_version = matches[0]
             app_version = matches[1]
         except AttributeError:
@@ -687,8 +688,8 @@ class CypressBLE(QWizardPage):
             lambda: D505.checked(self.psoc_disconnect_lbl,
                                  self.psoc_disconnect_chkbx))
 
-        self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug/replug both "
-                                    "battery and red wire from UART).")
+        self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug and replug "
+                                    "the battery).")
         self.pwr_cycle_lbl.setFont(QFont(self.system_font, 12))
         self.pwr_cycle_chkbx = QCheckBox()
         self.pwr_cycle_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
@@ -1082,7 +1083,7 @@ class UartPower(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.uart_pwr_lbl = QLabel("Ensure UART red power wire is connected "
+        self.uart_pwr_lbl = QLabel("Connect UART red power wire "
                                    "and then remove battery power.")
         self.uart_pwr_lbl.setFont(self.label_font)
         self.uart_pwr_chkbx = QCheckBox()
@@ -1107,10 +1108,8 @@ class UartPower(QWizardPage):
         self.red_led_chkbx.clicked.connect(self.hall_effect)
 
         self.leds_lbl = QLabel("Remove UART power connection, reconnect the"
-                               " battery & UART connections and verify the "
-                               " green, red & blue LEDs blink in the "
-                               " appropriate sequence.\nReconnect serial"
-                               " port from file menu.")
+                               " battery and verify the green & blue LEDs "
+                               "blink in the sequence.")
         self.leds_lbl.setWordWrap(True)
         self.leds_lbl.setFont(self.label_font)
         self.leds_chkbx = QCheckBox()
