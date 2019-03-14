@@ -432,11 +432,11 @@ class WatchDog(QWizardPage):
         self.sm.data_ready.connect(self.app_off)
         self.watchdog_pbar.setRange(0, 1)
         self.watchdog_pbar.setValue(1)
-        bl_pattern = "([0-9]+.[0-9a-zA-Z]+)"
-        app_pattern = "([0-9]+.[0-9a-zA-Z]+)"
+        pattern = "([0-9]+\.[0-9a-zA-Z]+)"
         try:
-            bootloader_version = re.search(bl_pattern, data).group()
-            app_version = re.search(app_pattern, data).group()
+            matches = re.findall(pattern, data)
+            bootloader_version = matches[0]
+            app_version = matches[1]
         except AttributeError:
             QMessageBox.warning(self, "Warning",
                                 "Error in serial data.")
@@ -634,7 +634,7 @@ class OneWireMaster(QWizardPage):
 
     def record_version(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "([0-9]+.[0-9a-zA-Z]+)"
+        pattern = "([0-9]+\.[0-9a-zA-Z]+)"
         onewire_version = re.search(pattern, data)
         if (onewire_version):
             onewire_version_val = onewire_version.group()
@@ -816,6 +816,7 @@ class XmegaInterfaces(QWizardPage):
     imei_signal = pyqtSignal()
     flash_test_signal = pyqtSignal()
     gps_test_signal = pyqtSignal()
+    serial_test_signal = pyqtSignal()
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -851,38 +852,32 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.connect(self.sm.send_command)
         self.flash_test_signal.connect(self.sm.flash_test)
         self.gps_test_signal.connect(self.sm.gps_test)
+        self.serial_test_signal.connect(self.sm.set_serial)
 
-        self.sm.data_ready.connect(self.serial_written)
+        self.sm.data_ready.connect(self.verify_batv)
         self.sm.flash_test_succeeded.connect(self.flash_pass)
         self.sm.flash_test_failed.connect(self.flash_fail)
         self.sm.gps_test_succeeded.connect(self.gps_pass)
         self.sm.gps_test_failed.connect(self.gps_fail)
+        self.sm.serial_test_succeeded.connect(self.serial_pass)
+        self.sm.serial_test_failed.connect(self.serial_fail)
+
+        self.serial_test_signal.emit()
 
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
 
         self.xmega_lbl.setText("Checking serial number. . .")
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
-    def serial_written(self, data):
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.verify_serial)
-        self.command_signal.emit("serial")
+    def serial_pass(self, serial_num):
+        self.report.write_data("serial_match", serial_num, "PASS")
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.xmega_lbl.setText("Verifying battery voltage. . .")
+        self.command_signal.emit("bat_v")
 
-    def verify_serial(self, data):
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.verify_batv)
-        pattern = "D505([0-9])*"
-        if (re.search(pattern, data)):
-            serial_num = re.search(pattern, data).group()
-            if (serial_num == self.tu.pcba_sn):
-                self.report.write_data("serial_match", serial_num, "PASS")
-            else:
-                self.report.write_data("serial_match", serial_num, "FAIL")
-        else:
-            self.report.write_data("serial_match", "", "FAIL")
-            QMessageBox.warning(self, "Serial Error",
-                                "Serial error or bad value")
-
+    def serial_fail(self, data):
+        self.report.write_data("serial_match", data, "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Verifying battery voltage. . .")
@@ -950,11 +945,6 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking TAC ports. . .")
         self.command_signal.emit("tac-get-info")
-
-    # def gps_loc(self, data):
-    #     self.sm.data_ready.disconnect()
-    #     self.sm.data_ready.connect(self.spot_read)
-    #     # Disabled because cannot test inside. Talk to customer
 
     def verify_tac(self, data):
         data = data.split("\n")

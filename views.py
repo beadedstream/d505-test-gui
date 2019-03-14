@@ -14,14 +14,14 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "v0.1"
+VERSION_NUM = "0.1.0"
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
 ABOUT_TEXT = f"""
-             PCB assembly test utility. Copyright Beaded Streams, 2018.
-             {VERSION_NUM}
+             PCB assembly test utility. Copyright Beaded Streams, 2019.
+             v{VERSION_NUM}
              """
 
 
@@ -113,6 +113,8 @@ class TestUtility(QMainWindow):
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
 
+        self.center()
+
         self.initUI()
 
     def initUI(self):
@@ -192,7 +194,6 @@ class TestUtility(QMainWindow):
         self.setCentralWidget(self.central_widget)
         # self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        self.center()
         self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 
     def create_messagebox(self, type, title, text, info_text):
