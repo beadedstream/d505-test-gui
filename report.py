@@ -33,6 +33,7 @@ class Report:
             "tac_connected": ["TAC Port Connected", None, None],
             "flash_comms": ["Flash Communication", None, None],
             "rtc_alarm": ["RTC Alarm", None, "PASS"],
+            "gps_comms": ["GPS Connected", None, None],
             "sonic_connected": ["Sonic Device Connected", None, None],
             "solar_v": ["Solar Charge Voltage (V)", None, None],
             "solar_i": ["Solar Charge Current (mA)", None, None],

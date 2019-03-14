@@ -9,8 +9,10 @@ class SerialManager(QObject):
     no_port_sel = pyqtSignal()
     sleep_finished = pyqtSignal()
     line_written = pyqtSignal()
-    flash_test_failed = pyqtSignal()
     flash_test_succeeded = pyqtSignal()
+    flash_test_failed = pyqtSignal()
+    gps_test_succeeded = pyqtSignal()
+    gps_test_failed = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -27,6 +29,7 @@ class SerialManager(QObject):
         if self.ser.is_open:
             try:
                 self.flush_buffers()
+
                 command = (command + "\r\n").encode()
                 self.ser.write(command)
                 data = self.ser.read_until(self.end).decode()
@@ -40,6 +43,8 @@ class SerialManager(QObject):
     def one_wire_test(self):
         if self.ser.is_open:
             try:
+                self.flush_buffers()
+
                 self.ser.write("1-wire-test\r".encode())
                 time.sleep(1)
                 self.ser.write(" ".encode())
@@ -90,6 +95,8 @@ class SerialManager(QObject):
     def iridium_command(self):
         if self.ser.is_open:
             try:
+                self.flush_buffers()
+
                 self.ser.write(b"iridium\r\n")
                 time.sleep(2)
                 num_bytes = self.ser.in_waiting
@@ -111,6 +118,8 @@ class SerialManager(QObject):
     def flash_test(self):
         if self.ser.is_open:
             try:
+                self.flush_buffers()
+
                 # Make sure there are no logs to start with
                 self.ser.write(b"clear\r\n")
                 self.ser.read_until(b"[Y/N]")
@@ -154,6 +163,30 @@ class SerialManager(QObject):
                 self.no_port_sel.emit()
         else:
             self.no_port_sel.emit()
+
+    @pyqtSlot()
+    def gps_test(self):
+        if self.ser.is_open:
+            try:
+                self.flush_buffers()
+
+                self.ser.write(b"gps-rx\r\n")
+                time.sleep(0.3)
+                # Throw away 'gps-rx' command echo
+                self.ser.read_until(b"\r\n")
+                # Read first line of GPS data
+                data = self.ser.read_until(b"\r\n")
+                # Stop gps data
+                self.ser.write(b".\r\n")
+
+                if b"$GNTXT" not in data:
+                    self.gps_test_failed.emit()
+                    return
+
+                self.gps_test_succeeded.emit()
+
+            except serial.serialutil.SerialException:
+                self.no_port_sel.emit()
 
     @pyqtSlot(int)
     def sleep(self, interval):

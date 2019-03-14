@@ -815,6 +815,7 @@ class XmegaInterfaces(QWizardPage):
     sleep_signal = pyqtSignal(int)
     imei_signal = pyqtSignal()
     flash_test_signal = pyqtSignal()
+    gps_test_signal = pyqtSignal()
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -831,7 +832,7 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_lbl = QLabel("Testing Xmega interfaces.")
         self.xmega_lbl.setFont(self.label_font)
         self.xmega_pbar = QProgressBar()
-        self.xmega_pbar.setRange(0, 8)
+        self.xmega_pbar.setRange(0, 9)
         self.xmega_pbar_counter = 0
 
         self.layout = QVBoxLayout()
@@ -849,10 +850,13 @@ class XmegaInterfaces(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
         self.flash_test_signal.connect(self.sm.flash_test)
+        self.gps_test_signal.connect(self.sm.gps_test)
 
         self.sm.data_ready.connect(self.serial_written)
-        self.sm.flash_test_succeeded.connect(self.flash_success)
+        self.sm.flash_test_succeeded.connect(self.flash_pass)
         self.sm.flash_test_failed.connect(self.flash_fail)
+        self.sm.gps_test_succeeded.connect(self.gps_pass)
+        self.sm.gps_test_failed.connect(self.gps_fail)
 
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
 
@@ -978,7 +982,7 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_lbl.setText("Checking flash. . .")
         self.flash_test_signal.emit()
 
-    def flash_success(self):
+    def flash_pass(self):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm_set)
         self.xmega_pbar_counter += 1
@@ -1000,27 +1004,27 @@ class XmegaInterfaces(QWizardPage):
 
     def rtc_alarm_set(self, data):
         # print(data)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_alarm)
         self.command_signal.emit("rtc-alarm 12:00")
 
     def rtc_alarm(self, data):
         # print(data)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.rtc_check_off)
         self.command_signal.emit("rtc-alarmed")
 
     def rtc_check_off(self, data):
         # print(data)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.sm.data_ready.disconnect()
         self.sleep_signal.connect(self.sm.sleep)
         self.sm.sleep_finished.connect(self.rtc_wait)
         if "0" not in data:
             self.report.write_data("rtc_alarm", "", "FAIL")
-        self.sleep_signal.emit(6)
+        self.sleep_signal.emit(5)
 
     def rtc_wait(self):
         self.sleep_signal.disconnect()
@@ -1029,13 +1033,27 @@ class XmegaInterfaces(QWizardPage):
 
     def rtc_check_on(self, data):
         # print(data)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
         if "1" not in data:
             self.report.write_data("rtc_alarm", "", "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.xmega_lbl.setText("Checking GPS connection. . .")
+        self.gps_test_signal.emit()
+
+    def gps_pass(self):
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.report.write_data("gps_comms", "", "PASS")
+        self.xmega_lbl.setText("Checking range finder. . .")
+        self.command_signal.emit("snow-depth")
+
+    def gps_fail(self):
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.report.write_data("gps_comms", "", "FAIL")
         self.xmega_lbl.setText("Checking range finder. . .")
         self.command_signal.emit("snow-depth")
 
