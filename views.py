@@ -192,7 +192,6 @@ class TestUtility(QMainWindow):
 
         self.central_widget.setLayout(vbox)
         self.setCentralWidget(self.central_widget)
-        # self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 

@@ -270,10 +270,8 @@ class SerialManager(QObject):
 
     def flush_buffers(self):
         self.ser.write("\r\n".encode())
-        time.sleep(1)
+        time.sleep(2)
         self.ser.read(self.ser.in_waiting)
-        self.ser.reset_output_buffer()
-        self.ser.reset_input_buffer()
 
     def close_port(self):
         self.ser.close()

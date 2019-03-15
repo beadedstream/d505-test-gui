@@ -829,35 +829,14 @@ class XmegaInterfaces(QWizardPage):
         self.model = model
         self.report = report
 
-        self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
-
-        self.xmega_lbl = QLabel("Testing Xmega interfaces.")
-        self.xmega_lbl.setFont(self.label_font)
-        self.xmega_pbar = QProgressBar()
-        self.xmega_pbar.setRange(0, 9)
-        self.xmega_pbar_counter = 0
-
-        self.layout = QVBoxLayout()
-        self.layout.addStretch()
-        self.layout.addWidget(self.xmega_lbl)
-        self.layout.addWidget(self.xmega_pbar)
-        self.layout.addStretch()
-        self.layout.setAlignment(Qt.AlignHCenter)
-
-        self.setLayout(self.layout)
-        self.setTitle("XMega Interfaces")
-
-    def initializePage(self):
-        self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
+        self.imei_signal.connect(self.sm.iridium_command)
         self.flash_test_signal.connect(self.sm.flash_test)
         self.gps_test_signal.connect(self.sm.gps_test)
         self.serial_test_signal.connect(self.sm.set_serial)
         self.rtc_test_signal.connect(self.sm.rtc_test)
 
-        self.sm.data_ready.connect(self.check_serial)
         self.sm.flash_test_succeeded.connect(self.flash_pass)
         self.sm.flash_test_failed.connect(self.flash_fail)
         self.sm.gps_test_succeeded.connect(self.gps_pass)
@@ -867,17 +846,53 @@ class XmegaInterfaces(QWizardPage):
         self.sm.rtc_test_succeeded.connect(self.rtc_pass)
         self.sm.rtc_test_failed.connect(self.rtc_fail)
 
+        self.system_font = QApplication.font().family()
+        self.label_font = QFont(self.system_font, 14)
+
+        self.xmega_lbl = QLabel("Testing Xmega interfaces.")
+        self.xmega_lbl.setFont(self.label_font)
+        self.xmega_pbar = QProgressBar()
+
+        self.repeat_tests = QPushButton("Repeat Tests")
+        self.repeat_tests.setMaximumWidth(150)
+        self.repeat_tests.setFont(self.label_font)
+        self.repeat_tests.setStyleSheet("background-color: grey")
+        self.repeat_tests.clicked.connect(self.initializePage)
+
+        self.layout = QVBoxLayout()
+        self.layout.addStretch()
+        self.layout.addWidget(self.xmega_lbl)
+        self.layout.addWidget(self.xmega_pbar)
+        self.layout.addStretch()
+        self.layout.addWidget(self.repeat_tests)
+        self.layout.addStretch()
+        self.layout.setAlignment(Qt.AlignHCenter)
+
+        self.setLayout(self.layout)
+        self.setTitle("XMega Interfaces")
+
+    def initializePage(self):
+        self.is_complete = False
+        self.sm.data_ready.connect(self.check_serial)
+
+        self.xmega_pbar.setRange(0, 9)
+        self.xmega_pbar.setValue(0)
+        self.xmega_pbar_counter = 0
+
+        self.d505.button(QWizard.NextButton).setEnabled(False)
+        self.repeat_tests.setEnabled(False)
+        self.xmega_lbl.setText("Checking serial number. . .")
+
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
 
-        self.xmega_lbl.setText("Checking serial number. . .")
-        self.d505.button(QWizard.NextButton).setEnabled(False)
-
     def check_serial(self):
+        print("check serial")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_batv)
         self.serial_test_signal.emit(self.tu.pcba_sn)
 
     def serial_pass(self, serial_num):
+        print("serial pass")
         self.report.write_data("serial_match", serial_num, "PASS")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -885,6 +900,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("bat_v")
 
     def serial_fail(self, data):
+        print("serial fail")
         self.report.write_data("serial_match", data, "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
@@ -892,7 +908,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("bat_v")
 
     def verify_batv(self, data):
-        self.imei_signal.connect(self.sm.iridium_command)
+        print(f"bat_v {data}")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_modem)
         pattern = "([0-9])+.([0-9])+"
@@ -914,6 +930,7 @@ class XmegaInterfaces(QWizardPage):
         self.imei_signal.emit()
 
     def verify_modem(self, data):
+        print(f"modem:\n {data}")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_board_id)
         pattern = "([0-9]){15}"
@@ -935,6 +952,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("board_id")
 
     def verify_board_id(self, data):
+        print(f"board_id:\n {data}")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_tac)
         pattern = r"([0-9A-Fa-f][0-9A-Fa-f]\s+){7}([0-9A-Fa-f][0-9A-Fa-f]){1}"
@@ -955,6 +973,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("tac-get-info")
 
     def verify_tac(self, data):
+        print(f"tac:\n {data}")
         data = data.split("\n")
 
         try:
@@ -981,6 +1000,7 @@ class XmegaInterfaces(QWizardPage):
         self.flash_test_signal.emit()
 
     def flash_pass(self):
+        print("flash pass")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
         self.xmega_pbar_counter += 1
@@ -988,9 +1008,9 @@ class XmegaInterfaces(QWizardPage):
         self.report.write_data("flash_comms", "", "PASS")
         self.xmega_lbl.setText("Testing alarm. . .")
         self.rtc_test_signal.emit()
-        # self.command_signal.emit("rtc-set 030719 115955")
 
     def flash_fail(self):
+        print("flash fail")
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.snow_depth)
         QMessageBox.warning(self, "Flash", "Flash test failed!")
@@ -999,9 +1019,9 @@ class XmegaInterfaces(QWizardPage):
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Testing alarm. . .")
         self.rtc_test_signal.emit()
-        # self.command_signal.emit("rtc-set 030719 115955")
 
     def rtc_pass(self):
+        print("rtc pass")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.report.write_data("rtc_alarm", "", "PASS")
@@ -1009,54 +1029,15 @@ class XmegaInterfaces(QWizardPage):
         self.gps_test_signal.emit()
 
     def rtc_fail(self):
+        print("rtc fail")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.report.write_data("rtc_alarm", "", "FAIL")
         self.xmega_lbl.setText("Checking GPS connection. . .")
         self.gps_test_signal.emit()
 
-    # def rtc_alarm_set(self, data):
-    #     # print(data)
-    #     time.sleep(0.3)
-    #     self.sm.data_ready.disconnect()
-    #     self.sm.data_ready.connect(self.rtc_alarm)
-    #     self.command_signal.emit("rtc-alarm 12:00")
-
-    # def rtc_alarm(self, data):
-    #     # print(data)
-    #     time.sleep(0.3)
-    #     self.sm.data_ready.disconnect()
-    #     self.sm.data_ready.connect(self.rtc_check_off)
-    #     self.command_signal.emit("rtc-alarmed")
-
-    # def rtc_check_off(self, data):
-    #     # print(data)
-    #     time.sleep(0.3)
-    #     self.sm.data_ready.disconnect()
-    #     self.sleep_signal.connect(self.sm.sleep)
-    #     self.sm.sleep_finished.connect(self.rtc_wait)
-    #     if "0" not in data:
-    #         self.report.write_data("rtc_alarm", "", "FAIL")
-    #     self.sleep_signal.emit(5)
-
-    # def rtc_wait(self):
-    #     self.sleep_signal.disconnect()
-    #     self.sm.data_ready.connect(self.rtc_check_on)
-    #     self.command_signal.emit("rtc-alarmed")
-
-    # def rtc_check_on(self, data):
-    #     # print(data)
-    #     time.sleep(0.3)
-    #     self.sm.data_ready.disconnect()
-    #     self.sm.data_ready.connect(self.snow_depth)
-    #     if "1" not in data:
-    #         self.report.write_data("rtc_alarm", "", "FAIL")
-    #     self.xmega_pbar_counter += 1
-    #     self.xmega_pbar.setValue(self.xmega_pbar_counter)
-    #     self.xmega_lbl.setText("Checking GPS connection. . .")
-    #     self.gps_test_signal.emit()
-
     def gps_pass(self):
+        print("gps pass")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.report.write_data("gps_comms", "", "PASS")
@@ -1064,6 +1045,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("snow-depth")
 
     def gps_fail(self):
+        print("gps fail")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.report.write_data("gps_comms", "", "FAIL")
@@ -1071,6 +1053,7 @@ class XmegaInterfaces(QWizardPage):
         self.command_signal.emit("snow-depth")
 
     def snow_depth(self, data):
+        print(f"sonic: {data}")
         self.sm.data_ready.disconnect()
         pattern = r"[0-9]+\scm"
         if (re.search(pattern, data)):
@@ -1089,6 +1072,24 @@ class XmegaInterfaces(QWizardPage):
         self.complete_signal.emit()
 
     def isComplete(self):
+        if self.is_complete:
+            # self.complete_signal.disconnect()
+            # self.command_signal.disconnect()
+            # self.flash_test_signal.disconnect()
+            # self.gps_test_signal.disconnect()
+            # self.serial_test_signal.disconnect()
+            # self.rtc_test_signal.disconnect()
+
+            # self.sm.flash_test_succeeded.disconnect()
+            # self.sm.flash_test_failed.disconnect()
+            # self.sm.gps_test_succeeded.disconnect()
+            # self.sm.gps_test_failed.disconnect()
+            # self.sm.serial_test_succeeded.disconnect()
+            # self.sm.serial_test_failed.disconnect()
+            # self.sm.rtc_test_succeeded.disconnect()
+            # self.sm.rtc_test_failed.disconnect()
+
+            self.repeat_tests.setEnabled(True)
         return self.is_complete
 
 
@@ -1170,12 +1171,8 @@ class UartPower(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
         self.d505.button(QWizard.NextButton).setEnabled(False)
-
-    def hall_effect(self):
-        self.tu.hall_effect_status.setText(
-            "Hall Effect Sensor Test: PASS")
-        self.tu.hall_effect_status.setStyleSheet(
-            D505.status_style_pass)
+        self.red_led_chkbx.setEnabled(False)
+        self.leds_chkbx.setEnabled(False)
 
     def verify_uart(self):
         self.sm.data_ready.connect(self.rx_psoc)
@@ -1191,10 +1188,19 @@ class UartPower(QWizardPage):
             self.uart_pbar.setRange(0, 1)
             self.uart_pbar.setValue(1)
             self.uart_pbar_lbl.setText("UART interface functional.")
+            self.uart_pbar_lbl.setStyleSheet("QLabel {color: grey}")
             self.report.write_data("uart_comms", "", "PASS")
         else:
             QMessageBox.warning(self, "UART Power", "Bad command response.")
             self.report.write_data("uart_comms", "", "FAIL")
+        self.red_led_chkbx.setEnabled(True)
+
+    def hall_effect(self):
+        self.tu.hall_effect_status.setText(
+            "Hall Effect Sensor Test: PASS")
+        self.tu.hall_effect_status.setStyleSheet(
+            D505.status_style_pass)
+        self.leds_chkbx.setEnabled(True)
 
     def isComplete(self):
         return self.is_complete
@@ -1390,6 +1396,9 @@ class DeepSleep(QWizardPage):
             f"Solar Charge Voltage: {solar_v} V")
 
         self.submit_button.setEnabled(False)
+        self.input_i_lbl.setFont("QLabel {color: grey}")
+        self.solar_i_lbl.setFont("QLabel {color: grey}")
+        self.solar_v_lbl.setFont("QLabel {color: grey}")
         self.is_complete = True
         self.complete_signal.emit()
 
