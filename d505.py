@@ -37,12 +37,12 @@ class D505(QWizard):
 
         setup_id = self.addPage(Setup(self, test_utility, serial_manager,
                                       model, report))
-        watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
-                                            model, report))
-        one_wire_id = self.addPage(OneWireMaster(self, test_utility,
-                                                 serial_manager, report))
-        cypress_id = self.addPage(CypressBLE(self, test_utility,
-                                             serial_manager, report))
+        # watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
+        #                                     model, report))
+        # one_wire_id = self.addPage(OneWireMaster(self, test_utility,
+        #                                          serial_manager, report))
+        # cypress_id = self.addPage(CypressBLE(self, test_utility,
+        #                                      serial_manager, report))
         xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
                                                 serial_manager, model, report))
         uart_id = self.addPage(UartPower(self, test_utility, serial_manager,
@@ -52,9 +52,9 @@ class D505(QWizard):
         final_id = self.addPage(FinalPage(test_utility, report))
 
         self.setup_page = self.page(setup_id)
-        self.watchdog_page = self.page(watchdog_id)
-        self.one_wire_page = self.page(one_wire_id)
-        self.cypress_page = self.page(cypress_id)
+        # self.watchdog_page = self.page(watchdog_id)
+        # self.one_wire_page = self.page(one_wire_id)
+        # self.cypress_page = self.page(cypress_id)
         self.xmega_page = self.page(xmega_id)
         self.uart_page = self.page(uart_id)
         self.deep_sleep_page = self.page(deep_sleep_id)
@@ -438,7 +438,7 @@ class WatchDog(QWizardPage):
             print(matches)
             bootloader_version = matches[0]
             app_version = matches[1]
-        except AttributeError:
+        except IndexError:
             QMessageBox.warning(self, "Warning",
                                 "Error in serial data.")
             return
@@ -817,7 +817,8 @@ class XmegaInterfaces(QWizardPage):
     imei_signal = pyqtSignal()
     flash_test_signal = pyqtSignal()
     gps_test_signal = pyqtSignal()
-    serial_test_signal = pyqtSignal()
+    serial_test_signal = pyqtSignal(str)
+    rtc_test_signal = pyqtSignal()
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -854,21 +855,27 @@ class XmegaInterfaces(QWizardPage):
         self.flash_test_signal.connect(self.sm.flash_test)
         self.gps_test_signal.connect(self.sm.gps_test)
         self.serial_test_signal.connect(self.sm.set_serial)
+        self.rtc_test_signal.connect(self.sm.rtc_test)
 
-        self.sm.data_ready.connect(self.verify_batv)
+        self.sm.data_ready.connect(self.check_serial)
         self.sm.flash_test_succeeded.connect(self.flash_pass)
         self.sm.flash_test_failed.connect(self.flash_fail)
         self.sm.gps_test_succeeded.connect(self.gps_pass)
         self.sm.gps_test_failed.connect(self.gps_fail)
         self.sm.serial_test_succeeded.connect(self.serial_pass)
         self.sm.serial_test_failed.connect(self.serial_fail)
-
-        self.serial_test_signal.emit()
+        self.sm.rtc_test_succeeded.connect(self.rtc_pass)
+        self.sm.rtc_test_failed.connect(self.rtc_fail)
 
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
 
         self.xmega_lbl.setText("Checking serial number. . .")
         self.d505.button(QWizard.NextButton).setEnabled(False)
+
+    def check_serial(self):
+        self.sm.data_ready.disconnect()
+        self.sm.data_ready.connect(self.verify_batv)
+        self.serial_test_signal.emit(self.tu.pcba_sn)
 
     def serial_pass(self, serial_num):
         self.report.write_data("serial_match", serial_num, "PASS")
@@ -975,64 +982,79 @@ class XmegaInterfaces(QWizardPage):
 
     def flash_pass(self):
         self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.rtc_alarm_set)
+        self.sm.data_ready.connect(self.snow_depth)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.report.write_data("flash_comms", "", "PASS")
         self.xmega_lbl.setText("Testing alarm. . .")
-        self.command_signal.emit("rtc-set 030719 115955")
+        self.rtc_test_signal.emit()
+        # self.command_signal.emit("rtc-set 030719 115955")
 
     def flash_fail(self):
         self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.rtc_alarm_set)
+        self.sm.data_ready.connect(self.snow_depth)
         QMessageBox.warning(self, "Flash", "Flash test failed!")
         self.report.write_data("flash_comms", "", "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
-        # set report value
         self.xmega_lbl.setText("Testing alarm. . .")
-        self.command_signal.emit("rtc-set 030719 115955")
+        self.rtc_test_signal.emit()
+        # self.command_signal.emit("rtc-set 030719 115955")
 
-    def rtc_alarm_set(self, data):
-        # print(data)
-        time.sleep(0.3)
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.rtc_alarm)
-        self.command_signal.emit("rtc-alarm 12:00")
-
-    def rtc_alarm(self, data):
-        # print(data)
-        time.sleep(0.3)
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.rtc_check_off)
-        self.command_signal.emit("rtc-alarmed")
-
-    def rtc_check_off(self, data):
-        # print(data)
-        time.sleep(0.3)
-        self.sm.data_ready.disconnect()
-        self.sleep_signal.connect(self.sm.sleep)
-        self.sm.sleep_finished.connect(self.rtc_wait)
-        if "0" not in data:
-            self.report.write_data("rtc_alarm", "", "FAIL")
-        self.sleep_signal.emit(5)
-
-    def rtc_wait(self):
-        self.sleep_signal.disconnect()
-        self.sm.data_ready.connect(self.rtc_check_on)
-        self.command_signal.emit("rtc-alarmed")
-
-    def rtc_check_on(self, data):
-        # print(data)
-        time.sleep(0.3)
-        self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.snow_depth)
-        if "1" not in data:
-            self.report.write_data("rtc_alarm", "", "FAIL")
+    def rtc_pass(self):
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.report.write_data("rtc_alarm", "", "PASS")
         self.xmega_lbl.setText("Checking GPS connection. . .")
         self.gps_test_signal.emit()
+
+    def rtc_fail(self):
+        self.xmega_pbar_counter += 1
+        self.xmega_pbar.setValue(self.xmega_pbar_counter)
+        self.report.write_data("rtc_alarm", "", "FAIL")
+        self.xmega_lbl.setText("Checking GPS connection. . .")
+        self.gps_test_signal.emit()
+
+    # def rtc_alarm_set(self, data):
+    #     # print(data)
+    #     time.sleep(0.3)
+    #     self.sm.data_ready.disconnect()
+    #     self.sm.data_ready.connect(self.rtc_alarm)
+    #     self.command_signal.emit("rtc-alarm 12:00")
+
+    # def rtc_alarm(self, data):
+    #     # print(data)
+    #     time.sleep(0.3)
+    #     self.sm.data_ready.disconnect()
+    #     self.sm.data_ready.connect(self.rtc_check_off)
+    #     self.command_signal.emit("rtc-alarmed")
+
+    # def rtc_check_off(self, data):
+    #     # print(data)
+    #     time.sleep(0.3)
+    #     self.sm.data_ready.disconnect()
+    #     self.sleep_signal.connect(self.sm.sleep)
+    #     self.sm.sleep_finished.connect(self.rtc_wait)
+    #     if "0" not in data:
+    #         self.report.write_data("rtc_alarm", "", "FAIL")
+    #     self.sleep_signal.emit(5)
+
+    # def rtc_wait(self):
+    #     self.sleep_signal.disconnect()
+    #     self.sm.data_ready.connect(self.rtc_check_on)
+    #     self.command_signal.emit("rtc-alarmed")
+
+    # def rtc_check_on(self, data):
+    #     # print(data)
+    #     time.sleep(0.3)
+    #     self.sm.data_ready.disconnect()
+    #     self.sm.data_ready.connect(self.snow_depth)
+    #     if "1" not in data:
+    #         self.report.write_data("rtc_alarm", "", "FAIL")
+    #     self.xmega_pbar_counter += 1
+    #     self.xmega_pbar.setValue(self.xmega_pbar_counter)
+    #     self.xmega_lbl.setText("Checking GPS connection. . .")
+    #     self.gps_test_signal.emit()
 
     def gps_pass(self):
         self.xmega_pbar_counter += 1
@@ -1052,8 +1074,10 @@ class XmegaInterfaces(QWizardPage):
         self.sm.data_ready.disconnect()
         pattern = r"[0-9]+\scm"
         if (re.search(pattern, data)):
-            value = re.search(pattern, data).group()
-            self.report.write_data("sonic_connected", value, "PASS")
+            value_string = re.search(pattern, data).group()
+            # Get rid of units
+            distance = value_string[:-3]
+            self.report.write_data("sonic_connected", distance, "PASS")
         else:
             self.report.write_data("sonic_connected", "", "FAIL")
             QMessageBox.warning(self, "Sonic Connection",

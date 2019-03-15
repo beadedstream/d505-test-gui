@@ -251,9 +251,9 @@ class TestUtility(QMainWindow):
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
 
     def parse_values(self):
-        self.tester_id = self.tester_id_input.text()
+        self.tester_id = self.tester_id_input.text().upper()
         self.pcba_pn = self.pcba_pn_input.currentText()
-        self.pcba_sn = self.pcba_sn_input.text()
+        self.pcba_sn = self.pcba_sn_input.text().upper()
 
         if (self.tester_id and self.pcba_pn and self.pcba_sn):
 
@@ -261,11 +261,9 @@ class TestUtility(QMainWindow):
             # the specific prefix for the given product.
             if (self.pcba_sn[0:4] == self.product_data[self.pcba_pn][0] and
                     len(self.pcba_sn) == 8):
-                self.r.write_data("tester_id", self.tester_id_input.text(),
-                                  "PASS")
-                self.r.write_data("pcba_sn", self.pcba_sn_input.text(), "PASS")
-                self.r.write_data("pcba_pn",
-                                  self.pcba_pn_input.currentText(), "PASS")
+                self.r.write_data("tester_id", self.tester_id, "PASS")
+                self.r.write_data("pcba_sn", self.pcba_sn, "PASS")
+                self.r.write_data("pcba_pn", self.pcba_pn, "PASS")
             else:
                 self.err_msg = self.create_messagebox("Warning", "Error",
                                                       "Error",

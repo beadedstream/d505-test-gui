@@ -34,7 +34,7 @@ class Report:
             "flash_comms": ["Flash Communication", None, None],
             "rtc_alarm": ["RTC Alarm", None, "PASS"],
             "gps_comms": ["GPS Connected", None, None],
-            "sonic_connected": ["Sonic Device Connected", None, None],
+            "sonic_connected": ["Sonic Device Connected (cm)", None, None],
             "solar_v": ["Solar Charge Voltage (V)", None, None],
             "solar_i": ["Solar Charge Current (mA)", None, None],
             "deep_sleep_i": ["Deep Sleep Current (uA)", None, None],
@@ -72,7 +72,13 @@ class Report:
         ts = self.timestamp.replace(":", "-")
         sn = self.data["pcba_sn"][1]
         id = self.data["tester_id"][1]
+
         name = path.join(self.file_path, f"{sn}_{ts}-ID-{id}.csv")
+
+        # If the test failed, add "_FAIL" to the file name.s
+        if self.data["result"][2] == "FAIL":
+            name = name[:-4] + "_FAIL.csv"
+
         f = open(name, "w", newline='')
         csvwriter = csv.writer(f)
 

@@ -13,6 +13,10 @@ class SerialManager(QObject):
     flash_test_failed = pyqtSignal()
     gps_test_succeeded = pyqtSignal()
     gps_test_failed = pyqtSignal()
+    serial_test_succeeded = pyqtSignal(str)
+    serial_test_failed = pyqtSignal(str)
+    rtc_test_succeeded = pyqtSignal()
+    rtc_test_failed = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -184,6 +188,64 @@ class SerialManager(QObject):
                     return
 
                 self.gps_test_succeeded.emit()
+
+            except serial.serialutil.SerialException:
+                self.no_port_sel.emit()
+
+    @pyqtSlot(str)
+    def set_serial(self, serial_num):
+        if self.ser.is_open:
+            try:
+                self.flush_buffers
+                s = serial_num + "\r\n"
+                self.ser.write(s.encode())
+                time.sleep(0.3)
+                data = self.ser.read_until(self.end).decode()
+                # Try to get serial number twice
+                if serial_num not in data:
+                    self.flush_buffers
+                    self.ser.write(s.encode())
+                    time.sleep(0.3)
+                    data = self.ser.read_until(self.end).decode()
+                    if serial_num not in data:
+                        self.serial_test_failed.emit(data)
+                        return
+                self.serial_test_succeeded.emit(serial_num)
+
+            except serial.serialutil.SerialException:
+                self.no_port_sel.emit()
+
+    @pyqtSlot()
+    def rtc_test(self):
+        if self.ser.is_open:
+            try:
+                self.flush_buffers
+                # Make sure D505 app is off.
+                self.ser.write(b"app 0\r\n")
+                time.sleep(0.5)
+                self.ser.read_until(self.end)
+                self.ser.write(b"rtc-set 030719 115955\r\n")
+                time.sleep(0.5)
+                self.ser.read_until(self.end)
+                self.ser.write(b"rtc-alarm 12:00\r\n")
+                time.sleep(0.5)
+                self.ser.read_until(self.end)
+                time.sleep(0.5)
+                self.ser.write(b"rtc-alarmed\r\n")
+                data = self.ser.read_until(self.end).decode()
+                if "0" not in data:
+                    self.rtc_test_failed.emit()
+                    return
+
+                time.sleep(5)
+                self.ser.write(b"rtc-alarmed\r\n")
+                time.sleep(0.5)
+                data = self.ser.read_until(self.end).decode()
+                if "1" not in data:
+                    self.rtc_test_failed.emit()
+                    return
+
+                self.rtc_test_succeeded.emit()
 
             except serial.serialutil.SerialException:
                 self.no_port_sel.emit()
