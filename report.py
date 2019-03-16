@@ -25,6 +25,8 @@ class Report:
             "xmega_bootloader": ["Xmega Bootloader Version", None, None],
             "xmega_app": ["Xmega App Version", None, None],
             "onewire_ver": ["1WireMaster Version", None, None],
+            "ble_prog": ["Cypress BLE Programming", "", None],
+            "bt_comms": ["Bluetooth Comms to 505", "", None],
             "ble_ver": ["BLE Version", None, "", None],
             "bat_v": ["Battery Voltage (V)", None, None],
             "serial_match": ["Serial Number Match", None, None],
@@ -84,8 +86,7 @@ class Report:
         csvwriter = csv.writer(f)
 
         csvwriter.writerow(["Name", "Value", "Pass/Fail"])
-
-        csvwriter.writerow("Test Result", "", self.test_result)
+        csvwriter.writerow(["Test Result", "", self.test_result])
         for _, test in self.data.items():
             csvwriter.writerow([test[0], test[1], test[2]])
         f.close()
