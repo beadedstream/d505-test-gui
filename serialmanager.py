@@ -17,6 +17,7 @@ class SerialManager(QObject):
     serial_test_failed = pyqtSignal(str)
     rtc_test_succeeded = pyqtSignal()
     rtc_test_failed = pyqtSignal()
+    port_unavailable_signal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -263,14 +264,16 @@ class SerialManager(QObject):
         return self.ser.port == port and self.ser.is_open
 
     def open_port(self, port):
-        self.ser.close()
-        self.ser = serial.Serial(port, 115200, timeout=45,
-                                 parity=serial.PARITY_NONE, rtscts=False,
-                                 xonxoff=False, dsrdtr=False)
-
+        try:
+            self.ser.close()
+            self.ser = serial.Serial(port, 115200, timeout=45,
+                                     parity=serial.PARITY_NONE, rtscts=False,
+                                     xonxoff=False, dsrdtr=False)
+        except serial.serialutil.SerialException:
+            self.port_unavailable_signal.emit()
     def flush_buffers(self):
         self.ser.write("\r\n".encode())
-        time.sleep(2)
+        time.sleep(0.5)
         self.ser.read(self.ser.in_waiting)
 
     def close_port(self):

@@ -7,13 +7,14 @@ class FlashD505(QObject):
     command_succeeded = pyqtSignal(str)
     command_failed = pyqtSignal(str)
     flash_finished = pyqtSignal()
+    process_error_signal = pyqtSignal()
 
-    def __init__(self, atprogram_path, install_files_path):
+    def __init__(self, atprogram_path, hex_files_path):
         super().__init__()
 
-        boot_file = str(Path.joinpath(install_files_path, "boot-section.hex"))
-        app_file = str(Path.joinpath(install_files_path, "app-section.hex"))
-        main_file = str(Path.joinpath(install_files_path, "main-app.hex"))
+        boot_file = str(Path.joinpath(hex_files_path, "boot-section.hex"))
+        app_file = str(Path.joinpath(hex_files_path, "app-section.hex"))
+        main_file = str(Path.joinpath(hex_files_path, "main-app.hex"))
 
         chip_erase = [atprogram_path,
                       "-t", "avrispmk2",
@@ -78,8 +79,11 @@ class FlashD505(QObject):
                     self.command_failed.emit(cmd_text)
                     break
 
-            except (ValueError, subprocess.CalledProcessError) as err:
+            except ValueError:
                 self.command_failed.emit(cmd_text)
+                break
+            except subprocess.CalledProcessError:
+                self.process_error_signal.emit()
                 break
 
         self.flash_finished.emit()

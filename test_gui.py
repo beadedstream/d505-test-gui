@@ -2,10 +2,12 @@ import random
 from pathlib import Path
 from views import TestUtility
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWizard
+from PyQt5.QtWidgets import QWizard, QApplication
 
 
 def test_success(qtbot):
+    app = QApplication([])
+    app.setStyle("fusion")
     gui = TestUtility()
     qtbot.addWidget(gui)
     gui.show()
@@ -156,7 +158,7 @@ def test_success(qtbot):
     assert parse_value(report_values[6]) == "4.0"
     assert parse_value(report_values[7]) == "2.0"
     assert parse_value(report_values[8]) == "5.0"
-    assert parse_value(report_values[11]) == "0.5e"
+    assert parse_value(report_values[11]) == "0.1b"
     assert parse_value(report_values[12]) == "0.5e"
     assert parse_value(report_values[13]) == "1.0d"
     assert parse_value(report_values[14]) == "1.2.0"

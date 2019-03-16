@@ -35,7 +35,7 @@ class TestUtility(QMainWindow):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
         self.config_font = QFont(self.system_font, 12)
-        self.config_path_font = QFont(self.system_font, 12, -1, True)
+        self.config_path_font = QFont(self.system_font, 12)
 
         self.settings = QSettings("BeadedStream", "PCBTestUtility")
 
@@ -49,10 +49,9 @@ class TestUtility(QMainWindow):
             "lat_stop": "48 04 N",
             "lon_start": "123 02 W",
             "lon_stop": "123 05 W",
-            "hex_file_path": "/path/to/hex/file",
+            "hex_files_path": "/path/to/hex/files",
             "report_file_path": "/path/to/report/folder",
-            "atprogram_file_path": "/path/to/atprogram.exe",
-            "install_file_path": "/path/to/install_files"
+            "atprogram_file_path": "/path/to/atprogram.exe"
         }
 
         for key in settings_defaults:
@@ -62,11 +61,12 @@ class TestUtility(QMainWindow):
         self.sm = serialmanager.SerialManager()
         self.serial_thread = QThread()
         self.sm.moveToThread(self.serial_thread)
-        self.sm.no_port_sel.connect(self.port_warning)
         self.serial_thread.start()
 
         self.m = model.Model()
         self.r = report.Report()
+
+        self.sm.port_unavailable_signal.connect(self.port_unavailable)
 
         # Part number : [serial prefix, procedure class]
         self.product_data = {
@@ -246,8 +246,8 @@ class TestUtility(QMainWindow):
 
         self.sm.open_port(port_name)
 
-    def port_warning(self):
-        QMessageBox.warning(self, "Warning!", "No serial port selected!")
+    def port_unavailable(self):
+        QMessageBox.warning(self, "Warning", "Port unavailable!")
 
     def parse_values(self):
         self.tester_id = self.tester_id_input.text().upper()
@@ -299,6 +299,7 @@ class TestUtility(QMainWindow):
         self.xmega_prog_status = QLabel("Xmega Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
+        self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
         self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
         self.led_test_status = QLabel("LED Test:_____")
         self.solar_charge_v_status = QLabel("Solar Charge Voltage:_____V")
@@ -317,6 +318,7 @@ class TestUtility(QMainWindow):
         self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
+        self.xmega_inter_status.setStyleSheet(status_lbl_stylesheet)
         self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
         self.led_test_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_v_status.setStyleSheet(status_lbl_stylesheet)
@@ -338,6 +340,7 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.xmega_prog_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
+        status_vbox1.addWidget(self.xmega_inter_status)
         status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.led_test_status)
         status_vbox1.addWidget(self.solar_charge_v_status)
@@ -435,11 +438,12 @@ class TestUtility(QMainWindow):
 
         self.hex_btn = QPushButton("[...]")
         self.hex_btn.setFixedWidth(FILE_BTN_WIDTH)
-        self.hex_btn.clicked.connect(self.choose_hex_file)
-        self.hex_lbl = QLabel("Choose hex file: ")
+        self.hex_btn.clicked.connect(self.set_hex_dir)
+        self.hex_lbl = QLabel("Choose the location of hex files: ")
         self.hex_lbl.setFont(self.config_font)
-        self.hex_path_lbl = QLabel(self.settings.value("hex_file_path"))
+        self.hex_path_lbl = QLabel(self.settings.value("hex_files_path"))
         self.hex_path_lbl.setFont(self.config_path_font)
+        self.hex_path_lbl.setStyleSheet("QLabel {color: blue}")
 
         self.report_btn = QPushButton("[...]")
         self.report_btn.setFixedWidth(FILE_BTN_WIDTH)
@@ -448,6 +452,8 @@ class TestUtility(QMainWindow):
         self.report_lbl.setFont(self.config_font)
         self.report_path_lbl = QLabel(self.settings.value("report_file_path"))
         self.report_path_lbl.setFont(self.config_path_font)
+        self.report_path_lbl.setStyleSheet("QLabel {color: blue}")
+
 
         self.atprogram_btn = QPushButton("[...]")
         self.atprogram_btn.setFixedWidth(FILE_BTN_WIDTH)
@@ -457,16 +463,7 @@ class TestUtility(QMainWindow):
         self.atprogram_path_lbl = QLabel(self.settings.value(
             "atprogram_file_path"))
         self.atprogram_path_lbl.setFont(self.config_path_font)
-
-        self.install_btn = QPushButton("[...]")
-        self.install_btn.setFixedWidth(FILE_BTN_WIDTH)
-        self.install_btn.clicked.connect(self.set_install_dir)
-        self.install_lbl = QLabel("Select the directory of the "
-                                  "installation files.")
-        self.install_lbl.setFont(self.config_font)
-        self.install_file_path_lbl = QLabel(self.settings.value(
-            "install_file_path"))
-        self.install_file_path_lbl.setFont(self.config_path_font)
+        self.atprogram_path_lbl.setStyleSheet("QLabel {color: blue}")
 
         save_loc_layout = QGridLayout()
         save_loc_layout.addWidget(self.hex_lbl, 0, 0)
@@ -478,9 +475,6 @@ class TestUtility(QMainWindow):
         save_loc_layout.addWidget(self.atprogram_lbl, 4, 0)
         save_loc_layout.addWidget(self.atprogram_btn, 4, 1)
         save_loc_layout.addWidget(self.atprogram_path_lbl, 5, 0)
-        save_loc_layout.addWidget(self.install_lbl, 6, 0)
-        save_loc_layout.addWidget(self.install_btn, 6, 1)
-        save_loc_layout.addWidget(self.install_file_path_lbl, 7, 0)
 
         save_loc_group = QGroupBox("Save Locations")
         save_loc_group.setLayout(save_loc_layout)
@@ -516,37 +510,28 @@ class TestUtility(QMainWindow):
         self.settings_widget.show()
         # self.settings_widget.resize(800, 600)
 
-    def choose_hex_file(self):
-        hex_file_path = QFileDialog.getOpenFileName(
+    def set_hex_dir(self):
+        hex_files_path = QFileDialog.getExistingDirectory(
             self,
-            "Select hex file",
-            "",
-            "Hex File (*.hex)"
-        )[0]
-        self.hex_path_lbl.setText(hex_file_path)
+            "Select hex files directory."
+        )
+        self.hex_path_lbl.setText(hex_files_path)
 
     def set_report_location(self):
         report_dir = QFileDialog.getExistingDirectory(
             self,
-            "Select report save location"
+            "Select report save location."
         )
         self.report_path_lbl.setText(report_dir)
 
     def choose_atprogram_file(self):
         atprogram_file_path = QFileDialog.getOpenFileName(
             self,
-            "Select atprogram.exe",
+            "Select atprogram.exe.",
             "",
             "Application (*.exe)"
         )[0]
         self.atprogram_path_lbl.setText(atprogram_file_path)
-
-    def set_install_dir(self):
-        install_file_dir = QFileDialog.getExistingDirectory(
-            self,
-            "Select the directory of the installation hex files."
-        )
-        self.install_file_path_lbl.setText(install_file_dir)
 
     def cancel_settings(self):
         self.settings_widget.close()
@@ -577,15 +562,14 @@ class TestUtility(QMainWindow):
         self.settings.setValue("lat_stop", self.lat_stop.text())
         self.settings.setValue("lon_start", self.lon_start.text())
         self.settings.setValue("lon_stop", self.lon_stop.text())
-        self.settings.setValue("hex_file_path", self.hex_path_lbl.text())
+        self.settings.setValue("hex_files_path", self.hex_path_lbl.text())
         self.settings.setValue("report_file_path", self.report_path_lbl.text())
         self.settings.setValue("atprogram_file_path",
                                self.atprogram_path_lbl.text())
-        self.settings.setValue("install_file_path",
-                               self.install_file_path_lbl.text())
 
         QMessageBox.information(self.settings_widget, "Information",
                                 "Settings applied!")
+
         self.settings_widget.close()
 
     def closeEvent(self, event):

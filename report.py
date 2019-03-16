@@ -8,10 +8,10 @@ class Report:
         today = dt.now()
         self.timestamp = None
         self.date = f"{today.day:02d}-{today.month:02d}-{today.year}"
+        self.test_result = None
         # Data format: key | [value, units, test-passed]
         self.data = {
             # key : ["Name", value, PASS/FAIL]
-            "result": ["Test Result", None, "PASS"],
             "timestamp": ["Timestamp", None, "PASS"],
             "pcba_sn": ["PCBA PN", None, None],
             "pcba_pn": ["PCBA SN", None, None],
@@ -48,9 +48,6 @@ class Report:
         indicating if the test passed or not. If the test failed and isn't
         already in the list of data, include it.
         """
-        if (status == "FAIL"):
-            self.data["result"][2] = "FAIL"
-
         self.data[data_key][1] = data_value
         self.data[data_key][2] = status
 
@@ -75,18 +72,20 @@ class Report:
 
         name = path.join(self.file_path, f"{sn}_{ts}-ID-{id}.csv")
 
-        # If the test failed, add "_FAIL" to the file name.s
-        if self.data["result"][2] == "FAIL":
-            name = name[:-4] + "_FAIL.csv"
+        # Check for any tests that failed.
+        for _, test in self.data.items():
+            if test[2] == "FAIL":
+                self.test_result = "FAIL"
+                name = name[:-4] + "_FAIL.csv"
+                break
+            self.test_result = "PASS"
 
         f = open(name, "w", newline='')
         csvwriter = csv.writer(f)
 
         csvwriter.writerow(["Name", "Value", "Pass/Fail"])
 
+        csvwriter.writerow("Test Result", "", self.test_result)
         for _, test in self.data.items():
             csvwriter.writerow([test[0], test[1], test[2]])
         f.close()
-
-        # Reset the report status
-        self.data["result"][2] = "PASS"
