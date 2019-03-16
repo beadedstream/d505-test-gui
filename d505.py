@@ -452,6 +452,8 @@ class WatchDog(QWizardPage):
         except IndexError:
             QMessageBox.warning(self, "Warning",
                                 "Error in serial data.")
+            self.report.write_data("xmega_bootloader", "", "FAIL")
+            self.report.write_data("xmega_app", "", "FAIL")
             self.watchdog_pbar.setRange(0, 1)
             self.watchdog_pbar.setValue(0)
             D505.unchecked(self.xmega_disconnect_lbl,

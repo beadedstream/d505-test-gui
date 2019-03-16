@@ -12,6 +12,10 @@ class FlashD505(QObject):
     def __init__(self, atprogram_path, hex_files_path):
         super().__init__()
 
+        # Hide console window
+        self.si = subprocess.STARTUPINFO()
+        self.si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
         boot_file = str(Path.joinpath(hex_files_path, "boot-section.hex"))
         app_file = str(Path.joinpath(hex_files_path, "app-section.hex"))
         main_file = str(Path.joinpath(hex_files_path, "main-app.hex"))
@@ -71,7 +75,8 @@ class FlashD505(QObject):
 
         for cmd_text, cmd in self.commands.items():
             try:
-                status = subprocess.check_output(cmd).decode()
+                status = subprocess.check_output(cmd,
+                                                 startupinfo=self.si).decode()
 
                 if "Firmware check OK" in status:
                     self.command_succeeded.emit(cmd_text)
