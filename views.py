@@ -238,7 +238,7 @@ class TestUtility(QMainWindow):
             self.sm.close_port()
 
         for port in ports:
-            port_description = port.name
+            port_description = port.description
             action = self.ports_menu.addAction(port_description)
             port_name = port.device
             if self.sm.is_connected(port_name):
@@ -248,11 +248,14 @@ class TestUtility(QMainWindow):
 
     def connect_port(self, action):
         p = "COM[0-9]+"
-        self.port_name = re.search(p, action.text()).group()
-        if (self.sm.is_connected(port_name)):
-            action.setChecked
-
-        self.sm.open_port(port_name)
+        m = re.search(p, action.text())
+        if m:
+            port_name = m.group()
+            if (self.sm.is_connected(port_name)):
+                action.setChecked
+            self.sm.open_port(port_name)
+        else:
+            QMessageBox.warning(self, "Warning", "Invalid port selection!")
 
     def port_unavailable(self):
         QMessageBox.warning(self, "Warning", "Port unavailable!")

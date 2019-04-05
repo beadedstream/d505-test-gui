@@ -1443,7 +1443,7 @@ class FinalPage(QWizardPage):
         self.report.generate_report()
 
         test_result = self.report.test_result
-        print(test_result)
+
         if test_result == "PASS":
             self.test_status = "Successful"
         else:
