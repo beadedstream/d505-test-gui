@@ -1,3 +1,4 @@
+import os
 import re
 import d505
 import serialmanager
@@ -14,7 +15,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "0.1.0"
+VERSION_NUM = "0.1.1"
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
@@ -116,6 +117,12 @@ class TestUtility(QMainWindow):
         self.center()
 
         self.initUI()
+    
+    # Get logo path
+    def resource_path(self, relative_path):
+         if hasattr(sys, '_MEIPASS'):
+             return os.path.join(sys._MEIPASS, relative_path)
+         return os.path.join(os.path.abspath("."), relative_path)
 
     def initUI(self):
         RIGHT_SPACING = 350
@@ -144,7 +151,7 @@ class TestUtility(QMainWindow):
         self.start_btn.setAutoDefault(True)
         self.start_btn.clicked.connect(self.parse_values)
 
-        self.logo_img = QPixmap("images/h_logo.png")
+        self.logo_img = QPixmap(self.resource_path("h_logo.png"))
         self.logo_img = self.logo_img.scaledToWidth(600)
         self.logo = QLabel()
         self.logo.setPixmap(self.logo_img)
@@ -231,20 +238,24 @@ class TestUtility(QMainWindow):
             self.sm.close_port()
 
         for port in ports:
-            port_description = str(port)[:-6]
+            port_description = port.description
             action = self.ports_menu.addAction(port_description)
-            port_name = port_description[0:4]
+            port_name = port.device
             if self.sm.is_connected(port_name):
                 action.setCheckable(True)
                 action.setChecked(True)
             self.ports_group.addAction(action)
 
     def connect_port(self, action):
-        port_name = action.text()[0:4]
-        if (self.sm.is_connected(port_name)):
-            action.setChecked
-
-        self.sm.open_port(port_name)
+        p = "COM[0-9]+"
+        m = re.search(p, action.text())
+        if m:
+            port_name = m.group()
+            if (self.sm.is_connected(port_name)):
+                action.setChecked
+            self.sm.open_port(port_name)
+        else:
+            QMessageBox.warning(self, "Warning", "Invalid port selection!")
 
     def port_unavailable(self):
         QMessageBox.warning(self, "Warning", "Port unavailable!")
@@ -581,6 +592,8 @@ class TestUtility(QMainWindow):
                                             QMessageBox.No)
 
         if confirmation == QMessageBox.Yes:
+            self.serial_thread.quit()
+            self.serial_thread.wait()
             event.accept()
         else:
             event.ignore()

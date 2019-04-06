@@ -21,7 +21,7 @@ class SerialManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.ser = serial.Serial(None, 115200, timeout=30,
+        self.ser = serial.Serial(None, 115200, timeout=45,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
         self.end = b"\r\n>"
@@ -259,6 +259,8 @@ class SerialManager(QObject):
     def is_connected(self, port):
         try:
             self.ser.write(b"\r\n")
+            time.sleep(0.1)
+            self.ser.read(self.ser.in_waiting)
         except serial.serialutil.SerialException:
             return False
         return self.ser.port == port and self.ser.is_open
@@ -266,11 +268,11 @@ class SerialManager(QObject):
     def open_port(self, port):
         try:
             self.ser.close()
-            self.ser = serial.Serial(port, 115200, timeout=45,
-                                     parity=serial.PARITY_NONE, rtscts=False,
-                                     xonxoff=False, dsrdtr=False)
+            self.ser.port = port
+            self.ser.open()
         except serial.serialutil.SerialException:
             self.port_unavailable_signal.emit()
+
     def flush_buffers(self):
         self.ser.write("\r\n".encode())
         time.sleep(0.5)
