@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['test_utility.py'],
+a = Analysis(['pcba_test_utility.py'],
              pathex=['C:\\Users\\samuel\\beadedstream-test-utility-gui'],
              binaries=[],
              datas=[('h_logo.png', '.')],
@@ -21,16 +21,16 @@ exe = EXE(pyz,
           a.scripts,
           [],
           exclude_binaries=True,
-          name='test_utility',
+          name='pcba_test_utility',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False )
+          console=False , icon='icon.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
                strip=False,
                upx=True,
-               name='test_utility')
+               name='pcba_test_utility')

@@ -4,20 +4,25 @@
 #define MyAppName "PCBA Test Utility"
 #define MyAppVersion "0.1.1"
 #define MyAppPublisher "BeadedStream"
-#define MyAppExeName "test_utility.exe"
+#define MyAppURL "http://www.beadedstream.com/"
+#define MyAppExeName "pcba_test_utility.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{020F8288-9FEF-4129-8A17-CD38F16EEB6B}
+AppId={{15305178-8B42-4D4D-B14C-159024E7F219}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=setup
+OutputBaseFilename=pcba_test_utility_setup
+SetupIconFile=C:\Users\samuel\beadedstream-test-utility-gui\icon.ico
 Compression=lzma
 SolidCompression=yes
 
@@ -28,8 +33,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\samuel\beadedstream-test-utility-gui\dist\test_utility\test_utility.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\samuel\beadedstream-test-utility-gui\dist\test_utility\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\samuel\beadedstream-test-utility-gui\dist\pcba_test_utility\pcba_test_utility.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\samuel\beadedstream-test-utility-gui\dist\pcba_test_utility\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

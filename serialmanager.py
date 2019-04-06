@@ -277,3 +277,6 @@ class SerialManager(QObject):
         self.ser.write("\r\n".encode())
         time.sleep(0.5)
         self.ser.read(self.ser.in_waiting)
+
+    def close_port(self):
+        self.ser.close()
