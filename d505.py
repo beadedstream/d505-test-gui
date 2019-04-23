@@ -75,11 +75,13 @@ class D505(QWizard):
     def finish(self):
         self.tu.initUI()
 
+    @staticmethod
     def checked(lbl, chkbx):
         if chkbx.isChecked():
             chkbx.setEnabled(False)
             lbl.setStyleSheet("QLabel {color: grey}")
 
+    @staticmethod
     def unchecked(lbl, chkbx):
         if chkbx.isChecked():
             chkbx.setEnabled(True)
