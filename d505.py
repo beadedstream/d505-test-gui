@@ -36,10 +36,10 @@ class D505(QWizard):
 
         setup_id = self.addPage(Setup(self, test_utility, serial_manager,
                                       model, report))
-        # watchdog_id = self.addPage(XmegaProg(self, test_utility, serial_manager,
-        #                                     model, report))
-        # one_wire_id = self.addPage(OneWireMaster(self, test_utility,
-        #                                          serial_manager, report))
+        watchdog_id = self.addPage(XmegaProg(self, test_utility, serial_manager,
+                                            model, report))
+        one_wire_id = self.addPage(OneWireMaster(self, test_utility,
+                                                 serial_manager, report))
         cypress_id = self.addPage(CypressBLE(self, test_utility,
                                              serial_manager, report))
         xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
@@ -51,8 +51,8 @@ class D505(QWizard):
         final_id = self.addPage(FinalPage(test_utility, report))
 
         self.setup_page = self.page(setup_id)
-        # self.watchdog_page = self.page(watchdog_id)
-        # self.one_wire_page = self.page(one_wire_id)
+        self.watchdog_page = self.page(watchdog_id)
+        self.one_wire_page = self.page(one_wire_id)
         self.cypress_page = self.page(cypress_id)
         self.xmega_page = self.page(xmega_id)
         self.uart_page = self.page(uart_id)
@@ -1291,7 +1291,6 @@ class DeepSleep(QWizardPage):
         self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off.")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
-        # self.ble_chkbx.clicked.connect(self.send_commands)
         self.ble_chkbx.clicked.connect(
             lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
 
@@ -1350,6 +1349,8 @@ class DeepSleep(QWizardPage):
         self.input_i_layout = QHBoxLayout()
         self.input_i_layout.addSpacing(LEFT_SPACING)
         self.input_i_layout.addWidget(self.input_i_lbl)
+        self.input_i_layout.addSpacing(50)
+        self.input_i_layout.addWidget(self.sleep_btn)
         self.input_i_layout.addStretch()
         self.input_i_layout.addWidget(self.input_i_input)
         self.input_i_layout.addWidget(self.input_i_unit)
