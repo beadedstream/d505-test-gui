@@ -14,20 +14,20 @@ class Model:
         self.limits = {
             "v_input_min": 5.0,
             "v_input_max": 7.0,
-            "i_input_min": 0,
-            "i_input_max": 6.0,
+            "i_input_min": 0.5,
+            "i_input_max": 80.0,
             "2v_min": 1.90,
             "2v_max": 2.10,
             "5v_min": 4.85,
             "5v_max": 5.15,
-            "5v_uart_tolerance": 0.02,
-            "5v_uart_off": 0.3,
+            "5v_uart_tolerance": 0.03,
+            "5v_uart_off": 0.35,
             "bat_v_tolerance": 0.10,
             "deep_sleep_min": 30,
-            "deep_sleep_max": 70,
-            "solar_i": 40,
-            "solar_v_min": 5,
-            "solar_v_max": 8
+            "deep_sleep_max": 85,
+            "solar_i_min": 40,
+            "solar_v_min": 6,
+            "solar_v_max": 7
         }
         self.tac = {
             "tac1": None,
@@ -107,8 +107,8 @@ class Model:
             return (value >= self.limits["solar_v_min"] and
                     value <= self.limits["solar_v_max"])
 
-        elif limit == "solar_i":
-            return (value >= self.limits["solar_i"])
+        elif limit == "solar_i_min":
+            return (value >= self.limits["solar_i_min"])
 
         else:
             raise InvalidLimit

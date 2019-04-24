@@ -36,10 +36,10 @@ class D505(QWizard):
 
         setup_id = self.addPage(Setup(self, test_utility, serial_manager,
                                       model, report))
-        watchdog_id = self.addPage(WatchDog(self, test_utility, serial_manager,
-                                            model, report))
-        one_wire_id = self.addPage(OneWireMaster(self, test_utility,
-                                                 serial_manager, report))
+        # watchdog_id = self.addPage(XmegaProg(self, test_utility, serial_manager,
+        #                                     model, report))
+        # one_wire_id = self.addPage(OneWireMaster(self, test_utility,
+        #                                          serial_manager, report))
         cypress_id = self.addPage(CypressBLE(self, test_utility,
                                              serial_manager, report))
         xmega_id = self.addPage(XmegaInterfaces(self, test_utility,
@@ -51,8 +51,8 @@ class D505(QWizard):
         final_id = self.addPage(FinalPage(test_utility, report))
 
         self.setup_page = self.page(setup_id)
-        self.watchdog_page = self.page(watchdog_id)
-        self.one_wire_page = self.page(one_wire_id)
+        # self.watchdog_page = self.page(watchdog_id)
+        # self.one_wire_page = self.page(one_wire_id)
         self.cypress_page = self.page(cypress_id)
         self.xmega_page = self.page(xmega_id)
         self.uart_page = self.page(uart_id)
@@ -244,7 +244,7 @@ class Setup(QWizardPage):
         return self.is_complete
 
 
-class WatchDog(QWizardPage):
+class XmegaProg(QWizardPage):
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
     complete_signal = pyqtSignal()
@@ -319,6 +319,11 @@ class WatchDog(QWizardPage):
         self.supply_5v_input_btn.setEnabled(False)
         self.supply_5v_input_btn.clicked.connect(self.user_value_handler)
 
+        self.ble_parallel_lbl = QLabel("To save time, you can start "
+                                       "programming the BLE after recording "
+                                       "the 5V supply!")
+        self.ble_parallel_lbl.setFont(self.label_font)
+
         self.supply_5v_pbar_lbl = QLabel("Testing supply 5v...")
         self.supply_5v_pbar_lbl.setFont(self.label_font)
         self.supply_5v_pbar = QProgressBar()
@@ -361,7 +366,8 @@ class WatchDog(QWizardPage):
         self.grid.addLayout(self.watchdog_layout, 4, 0)
         self.grid.addLayout(self.app0_layout, 5, 0)
         self.grid.addLayout(self.supply_5v_layout, 6, 0)
-        self.grid.addLayout(self.supply_5v_pbar_layout, 7, 0)
+        self.grid.addWidget(self.ble_parallel_lbl, 7, 0)
+        self.grid.addLayout(self.supply_5v_pbar_layout, 8, 0)
 
         self.setLayout(self.grid)
         self.setTitle("Xmega Programming and Verification")
@@ -430,9 +436,13 @@ class WatchDog(QWizardPage):
                             f"Command {cmd_text} failed!")
         D505.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
+        self.tu.xmega_prog_status.setStyleSheet(D505.status_style_fail)
+        self.tu.xmega_prog_status.setText("XMega Programming: FAIL")
 
     def flash_finished(self):
         self.xmega_disconnect_chkbx.setEnabled(True)
+        self.tu.xmega_prog_status.setStyleSheet(D505.status_style_pass)
+        self.tu.xmega_prog_status.setText("XMega Programming: PASS")
         self.flash_thread.quit()
         self.flash_thread.wait()
 
@@ -661,12 +671,12 @@ class OneWireMaster(QWizardPage):
             onewire_version_val = onewire_version.group()
             self.report.write_data("onewire_ver", onewire_version_val, "PASS")
             self.one_wire_lbl.setText("Version recorded.")
-            self.tu.xmega_prog_status.setText("Xmega Programming: PASS")
-            self.tu.xmega_prog_status.setStyleSheet(D505.status_style_pass)
+            self.tu.one_wire_prog_status.setText("1-Wire Programming: PASS")
+            self.tu.one_wire_prog_status.setStyleSheet(D505.status_style_pass)
         else:
             self.report.write_data("onewire_ver", "N/A", "FAIL")
-            self.tu.xmega_prog_status.setText("Xmega Programming: FAIL")
-            self.tu.xmega_prog_status.setStyleSheet(D505.status_style_fail)
+            self.tu.one_wire_prog_status.setText("Xmega Programming: FAIL")
+            self.tu.one_wire_prog_status.setStyleSheet(D505.status_style_fail)
             QMessageBox.warning(self, "XMega3", "Bad command response.")
 
         self.is_complete = True
@@ -690,7 +700,7 @@ class CypressBLE(QWizardPage):
 
         self.ble_lbl = QLabel("Run the Cypress programming utility to "
                               "program the CYBLE-224116 BLE module.")
-        self.ble_lbl.setFont(QFont(self.system_font, 12))
+        self.ble_lbl.setFont(self.label_font)
         self.ble_btn_pass = QPushButton("PASS")
         self.ble_btn_pass.setMaximumWidth(75)
         self.ble_btn_fail = QPushButton("FAIL")
@@ -698,9 +708,15 @@ class CypressBLE(QWizardPage):
         self.ble_btn_pass.clicked.connect(self.ble_pass)
         self.ble_btn_fail.clicked.connect(self.ble_fail)
 
-        self.psoc_disconnect_lbl = QLabel("Disconnect the PSoC programmer "
-                                          "from J1.")
-        self.psoc_disconnect_lbl.setFont(QFont(self.system_font, 12))
+        self.psoc_disconnect_lbl = QLabel()
+        self.psoc_disconnect_lbl.setTextFormat(Qt.RichText)
+        self.psoc_disconnect_lbl.setFont(self.label_font)
+        self.psoc_disconnect_lbl.setText( 
+            "Disconnect the PSoC programmer from J1 (backside) and sit the "
+            "board all<br/>"
+            "the way down into the test fixture pushing against the pogo pins.")
+        # self.psoc_disconnect_lbl = QLabel("Disconnect the PSoC programmer "
+        #                                   "from J1.")
         self.psoc_disconnect_chkbx = QCheckBox()
         self.psoc_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
                                                  {width: 20px; height: 20px}")
@@ -710,7 +726,7 @@ class CypressBLE(QWizardPage):
 
         self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug and replug "
                                     "the battery).")
-        self.pwr_cycle_lbl.setFont(QFont(self.system_font, 12))
+        self.pwr_cycle_lbl.setFont(self.label_font)
         self.pwr_cycle_chkbx = QCheckBox()
         self.pwr_cycle_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
@@ -719,23 +735,34 @@ class CypressBLE(QWizardPage):
 
         self.bt_comm_lbl = QLabel("Verify communication to 505 with "
                                   "bluetooth device.")
-        self.bt_comm_lbl.setFont(QFont(self.system_font, 12))
+        self.bt_comm_lbl.setFont(self.label_font)
         self.bt_comm_btn_pass = QPushButton("PASS")
         self.bt_comm_btn_pass.setMaximumWidth(75)
         self.bt_comm_btn_fail = QPushButton("FAIL")
         self.bt_comm_btn_fail.setMaximumWidth(75)
         self.bt_comm_btn_pass.clicked.connect(self.bt_comm_pass)
         self.bt_comm_btn_fail.clicked.connect(self.bt_comm_fail)
-        self.bt_comm_btn_pass.clicked.connect(self.psoc_version)
-        self.bt_comm_btn_fail.clicked.connect(self.psoc_version)
+
+        self.leds_lbl = QLabel("Verify the blue & green LEDs are working.")
+        self.leds_lbl.setFont(self.label_font)
+        self.leds_chkbx = QCheckBox()
+        self.leds_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
+                                        height: 20px}")
+        self.leds_chkbx.clicked.connect(
+            lambda: D505.checked(self.leds_lbl, self.leds_chkbx))
+        self.leds_chkbx.clicked.connect(self.psoc_version)
 
         self.psoc_pbar = QProgressBar()
         self.psoc_pbar_lbl = QLabel("PSoC version")
-        self.psoc_pbar_lbl.setFont(QFont(self.system_font, 12))
+        self.psoc_pbar_lbl.setFont(self.label_font)
 
         self.psoc_layout = QVBoxLayout()
         self.psoc_layout.addWidget(self.psoc_pbar_lbl)
         self.psoc_layout.addWidget(self.psoc_pbar)
+
+        self.uart_wire_lbl = QLabel("Plug in UART power wire before going to "
+                                    "the next step.")
+        self.uart_wire_lbl.setFont(self.label_font)
 
         self.grid = QGridLayout()
         self.grid.setHorizontalSpacing(25)
@@ -750,8 +777,10 @@ class CypressBLE(QWizardPage):
         self.grid.addWidget(self.bt_comm_lbl, 3, 0)
         self.grid.addWidget(self.bt_comm_btn_pass, 3, 1)
         self.grid.addWidget(self.bt_comm_btn_fail, 3, 2)
-        self.grid.addWidget(QLabel(), 4, 0)
+        self.grid.addWidget(self.leds_lbl, 4, 0)
+        self.grid.addWidget(self.leds_chkbx, 4, 1)
         self.grid.addLayout(self.psoc_layout, 5, 0)
+        self.grid.addWidget(self.uart_wire_lbl, 6, 0)
 
         self.hbox = QHBoxLayout()
         self.hbox.addStretch()
@@ -907,6 +936,8 @@ class XmegaInterfaces(QWizardPage):
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.repeat_tests.setEnabled(False)
         self.xmega_lbl.setText("Checking serial number. . .")
+
+        self.tu.xmega_inter_status.setText("Xmega Interfaces:_____")
 
         self.command_signal.emit(f"serial {self.tu.pcba_sn}")
 
@@ -1130,8 +1161,7 @@ class UartPower(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 14)
 
-        self.uart_pwr_lbl = QLabel("Connect UART red power wire "
-                                   "and then remove battery power.")
+        self.uart_pwr_lbl = QLabel("Remove battery power.")
         self.uart_pwr_lbl.setFont(self.label_font)
         self.uart_pwr_chkbx = QCheckBox()
         self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; "
@@ -1154,9 +1184,8 @@ class UartPower(QWizardPage):
             lambda: D505.checked(self.red_led_lbl, self.red_led_chkbx))
         self.red_led_chkbx.clicked.connect(self.hall_effect)
 
-        self.leds_lbl = QLabel("Remove UART power connection, reconnect the"
-                               " battery and verify the green & blue LEDs "
-                               "blink in the sequence.")
+        self.leds_lbl = QLabel("Remove UART power connection and reconnect the"
+                               " battery.")
         self.leds_lbl.setWordWrap(True)
         self.leds_lbl.setFont(self.label_font)
         self.leds_chkbx = QCheckBox()
@@ -1262,7 +1291,7 @@ class DeepSleep(QWizardPage):
         self.ble_lbl = QLabel("Ensure BLE interface is disconnected or off.")
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
-        self.ble_chkbx.clicked.connect(self.send_commands)
+        # self.ble_chkbx.clicked.connect(self.send_commands)
         self.ble_chkbx.clicked.connect(
             lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
 
@@ -1271,6 +1300,8 @@ class DeepSleep(QWizardPage):
         self.input_i_lbl.setFont(self.label_font)
         self.input_i_lbl.setText(
             "Switch current meter to <b>uA</b> and record input current.")
+        self.sleep_btn = QPushButton("Sleep Mode")
+        self.sleep_btn.clicked.connect(self.sleep_command)
         self.input_i_input = QLineEdit()
         self.input_i_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.input_i_unit = QLabel("uA")
@@ -1371,7 +1402,7 @@ class DeepSleep(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
-    def send_commands(self):
+    def sleep_command(self):
         self.command_signal.emit("pClock-off")
 
     def parse_data(self):
@@ -1385,7 +1416,7 @@ class DeepSleep(QWizardPage):
 
         deep_sleep_i_pass = self.model.compare_to_limit("deep_sleep_i",
                                                         deep_sleep_i)
-        solar_i_pass = self.model.compare_to_limit("solar_i", solar_i)
+        solar_i_pass = self.model.compare_to_limit("solar_i_min", solar_i)
         solar_v_pass = self.model.compare_to_limit("solar_v", solar_v)
 
         if deep_sleep_i_pass:

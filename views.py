@@ -17,8 +17,8 @@ from PyQt5.QtCore import QSettings, Qt, QThread
 
 VERSION_NUM = "0.1.1"
 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = 1400
+WINDOW_HEIGHT = 800
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2019.
@@ -304,10 +304,11 @@ class TestUtility(QMainWindow):
         self.input_v_status = QLabel(f"Input Voltage: _____ V")
         self.input_i_status = QLabel(f"Input Current: _____ mA")
         self.supply_2v_status = QLabel("2V Supply: _____V")
+        self.xmega_prog_status = QLabel("XMega Programming: _____")
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
-        self.xmega_prog_status = QLabel("Xmega Programming:_____")
+        self.one_wire_prog_status = QLabel("1-Wire Master Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
@@ -323,10 +324,11 @@ class TestUtility(QMainWindow):
         self.input_v_status.setStyleSheet(status_lbl_stylesheet)
         self.input_i_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_2v_status.setStyleSheet(status_lbl_stylesheet)
+        self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_5v_status.setStyleSheet(status_lbl_stylesheet)
         self.uart_5v_status.setStyleSheet(status_lbl_stylesheet)
         self.uart_off_status.setStyleSheet(status_lbl_stylesheet)
-        self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
+        self.one_wire_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
         self.xmega_inter_status.setStyleSheet(status_lbl_stylesheet)
@@ -345,10 +347,11 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.input_v_status)
         status_vbox1.addWidget(self.input_i_status)
         status_vbox1.addWidget(self.supply_2v_status)
+        status_vbox1.addWidget(self.xmega_prog_status)
         status_vbox1.addWidget(self.supply_5v_status)
         status_vbox1.addWidget(self.uart_5v_status)
         status_vbox1.addWidget(self.uart_off_status)
-        status_vbox1.addWidget(self.xmega_prog_status)
+        status_vbox1.addWidget(self.one_wire_prog_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
         status_vbox1.addWidget(self.xmega_inter_status)
