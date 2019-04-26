@@ -34,7 +34,7 @@ class TestUtility(QMainWindow):
     def __init__(self):
         super().__init__()
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
         self.config_font = QFont(self.system_font, 12)
         self.config_path_font = QFont(self.system_font, 12)
 
@@ -113,8 +113,6 @@ class TestUtility(QMainWindow):
         self.help_menu = self.menubar.addMenu("&Help")
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
-
-        self.center()
 
         self.initUI()
     
@@ -216,12 +214,6 @@ class TestUtility(QMainWindow):
         else:
             raise InvalidMsgType
         return msgbox
-
-    def center(self):
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
 
     def about_program(self):
         QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
@@ -363,6 +355,7 @@ class TestUtility(QMainWindow):
         status_vbox1.addStretch()
 
         status_group = QGroupBox("Test Statuses")
+        status_group.setFont(self.label_font)
         status_group.setLayout(status_vbox1)
 
         # Use the product data dictionary to call the procdure class that

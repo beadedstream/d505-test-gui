@@ -5,7 +5,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import (
     QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
-    QApplication
+    QApplication, QSizePolicy
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QThread
@@ -108,7 +108,7 @@ class Setup(QWizardPage):
         self.report = report
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
         self.step_a_lbl = QLabel("Connect all peripherals to DUT"
                                  " and apply input power:", self)
         self.step_a_lbl.setFont(self.label_font)
@@ -120,6 +120,7 @@ class Setup(QWizardPage):
 
         self.step_b_lbl = QLabel("Record Input voltage: ", self)
         self.step_b_lbl.setFont(self.label_font)
+        # self.step_b_lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.step_b_input = QLineEdit()
         self.step_b_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.step_b_unit = QLabel("V")
@@ -262,7 +263,7 @@ class XmegaProg(QWizardPage):
         self.sm.no_port_sel.connect(self.port_warning)
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.flash_statuses = {"chip_erase": "Programming boot-loader...",
                                "prog_boot": "Programming app-section...",
@@ -290,6 +291,7 @@ class XmegaProg(QWizardPage):
                                            "connector J2. Ensure serial port "
                                            "is connected in the serial menu.")
         self.xmega_disconnect_lbl.setFont(self.label_font)
+        # self.xmega_disconnect_lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.xmega_disconnect_chkbx = QCheckBox()
         self.xmega_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
                                                    {width: 20px; \
@@ -571,9 +573,11 @@ class XmegaProg(QWizardPage):
         if (value_pass):
             self.report.write_data("off_5v", uart_off_val, "PASS")
             self.tu.uart_off_status.setStyleSheet(D505.status_style_pass)
+            self.supply_5v_pbar_lbl.setText("Complete.")
         else:
             self.report.write_data("off_5v", uart_off_val, "FAIL")
             self.tu.uart_off_status.setStyleSheet(D505.status_style_fail)
+            self.supply_5v_pbar_lbl.setText("Failed.")
 
         self.tu.uart_off_status.setText(f"5 V Off: {uart_off_val} V")
         self.is_complete = True
@@ -596,7 +600,7 @@ class OneWireMaster(QWizardPage):
         self.report = report
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.one_wire_lbl = QLabel()
         self.one_wire_lbl.setFont(self.label_font)
@@ -696,7 +700,7 @@ class CypressBLE(QWizardPage):
         self.report = report
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.ble_lbl = QLabel("Run the Cypress programming utility to "
                               "program the CYBLE-224116 BLE module.")
@@ -900,7 +904,7 @@ class XmegaInterfaces(QWizardPage):
         self.sm.rtc_test_failed.connect(self.rtc_fail)
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.xmega_lbl = QLabel("Testing Xmega interfaces.")
         self.xmega_lbl.setFont(self.label_font)
@@ -1159,7 +1163,7 @@ class UartPower(QWizardPage):
         self.report = report
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.uart_pwr_lbl = QLabel("Remove battery power.")
         self.uart_pwr_lbl.setFont(self.label_font)
@@ -1283,7 +1287,7 @@ class DeepSleep(QWizardPage):
         self.report = report
 
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         self.setStyleSheet("QCheckBox::indicator {width: 20px;"
                            "height: 20px}")
@@ -1401,10 +1405,15 @@ class DeepSleep(QWizardPage):
         self.is_complete = False
         self.command_signal.connect(self.sm.send_command)
         self.complete_signal.connect(self.completeChanged)
+        self.sm.data_ready.connect(self.command_finished)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
     def sleep_command(self):
         self.command_signal.emit("pClock-off")
+        self.sleep_btn.setEnabled(False)
+
+    def command_finished(self):
+        self.sleep_btn.setEnabled(True)
 
     def parse_data(self):
         try:
@@ -1463,7 +1472,7 @@ class DeepSleep(QWizardPage):
 class FinalPage(QWizardPage):
     def __init__(self, test_utility, report):
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
 
         super().__init__()
 
