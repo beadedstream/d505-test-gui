@@ -15,7 +15,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "0.1.1"
+VERSION_NUM = "1.0.0"
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 800
@@ -38,7 +38,7 @@ class TestUtility(QMainWindow):
         self.config_font = QFont(self.system_font, 12)
         self.config_path_font = QFont(self.system_font, 12)
 
-        self.settings = QSettings("BeadedStream", "PCBTestUtility")
+        self.settings = QSettings("BeadedStream", "PCBATestUtility")
 
         settings_defaults = {
             "port1_tac_id": "",
@@ -86,7 +86,7 @@ class TestUtility(QMainWindow):
         self.quit.setStatusTip("Exit Program")
         self.quit.triggered.connect(self.close)
 
-        self.about_tu = QAction("About Test Utility", self)
+        self.about_tu = QAction("About PCBA Test Utility", self)
         self.about_tu.setShortcut("Ctrl+U")
         self.about_tu.setStatusTip("About Program")
         self.about_tu.triggered.connect(self.about_program)
@@ -216,7 +216,7 @@ class TestUtility(QMainWindow):
         return msgbox
 
     def about_program(self):
-        QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
+        QMessageBox.about(self, "About PCBA Test Utility", ABOUT_TEXT)
 
     def about_qt(self):
         QMessageBox.aboutQt(self, "About Qt")
