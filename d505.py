@@ -618,6 +618,7 @@ class XmegaProg(QWizardPage):
 
 
 class OneWireMaster(QWizardPage):
+    """Third QWizard page. Handles OneWire Master programming."""
     command_signal = pyqtSignal(str)
     reprogram_signal = pyqtSignal()
     file_write_signal = pyqtSignal(str)
@@ -721,6 +722,7 @@ class OneWireMaster(QWizardPage):
 
 
 class CypressBLE(QWizardPage):
+    """Fourth QWizard page. Handles Cypress BLE tests."""
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
@@ -901,6 +903,7 @@ class CypressBLE(QWizardPage):
 
 
 class XmegaInterfaces(QWizardPage):
+    """Fifth QWizard page. Tests Xmega programming interfaces."""
     complete_signal = pyqtSignal()
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
@@ -1184,6 +1187,7 @@ class XmegaInterfaces(QWizardPage):
 
 
 class UartPower(QWizardPage):
+    """Sixth QWizard page. Handles UART power and LED tests."""
     complete_signal = pyqtSignal()
     command_signal = pyqtSignal(str)
 
@@ -1303,6 +1307,7 @@ class UartPower(QWizardPage):
 
 
 class DeepSleep(QWizardPage):
+    """Seventh QWizard page. Handles deep sleep tests."""
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
@@ -1503,6 +1508,7 @@ class DeepSleep(QWizardPage):
 
 
 class FinalPage(QWizardPage):
+    """Final QWizard page, displays test resutl."""
     def __init__(self, test_utility, report):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 12)

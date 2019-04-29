@@ -4,6 +4,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
 class FlashD505(QObject):
+    """Class that flashes the D505 board with hex files."""
     command_succeeded = pyqtSignal(str)
     command_failed = pyqtSignal(str)
     flash_finished = pyqtSignal()
@@ -72,6 +73,7 @@ class FlashD505(QObject):
 
     @pyqtSlot()
     def flash(self):
+        """Loops through all the commands to flash the D505 board."""
 
         for cmd_text, cmd in self.commands.items():
             try:
