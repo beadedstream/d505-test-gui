@@ -12,6 +12,9 @@ from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class D505(QWizard):
+    """QWizard class for the D505 board. Sets up the QWizard page and adds the
+    individual QWizardPage subpages for each set of tests."""
+
     status_style_pass = """QLabel {background: #8cff66;
                         border: 2px solid grey; font-size: 20px}"""
     status_style_fail = """QLabel {background: #ff5c33;
@@ -63,6 +66,8 @@ class D505(QWizard):
         self.report = report
 
     def abort(self):
+        """Prompt user for confirmation and abort test if confirmed."""
+
         msg = "Are you sure you want to cancel the test?"
         confirmation = QMessageBox.question(self, "Abort Test?", msg,
                                             QMessageBox.Yes,
@@ -73,16 +78,22 @@ class D505(QWizard):
             pass
 
     def finish(self):
+        """Reinitialize the TestUtility main page when tests are finished."""
+
         self.tu.initUI()
 
     @staticmethod
     def checked(lbl, chkbx):
+        """Utility function for formatted a checked Qcheckbox."""
+
         if chkbx.isChecked():
             chkbx.setEnabled(False)
             lbl.setStyleSheet("QLabel {color: grey}")
 
     @staticmethod
     def unchecked(lbl, chkbx):
+        """Utility function for formatting an unchecked Qcheckbox."""
+
         if chkbx.isChecked():
             chkbx.setEnabled(True)
             chkbx.setChecked(False)
@@ -90,6 +101,8 @@ class D505(QWizard):
 
 
 class Setup(QWizardPage):
+    """First QWizard Page with initial input values."""
+
     command_signal = pyqtSignal(str)
     complete_signal = pyqtSignal()
 
@@ -200,6 +213,8 @@ class Setup(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
 
     def parse_values(self):
+        """Parse the input values and check their validity."""
+
         limits = ["input_v", "input_i", "supply_2v"]
         values = []
         try:
@@ -246,6 +261,9 @@ class Setup(QWizardPage):
 
 
 class XmegaProg(QWizardPage):
+    """Second QWizard page. Handles Xmega programming, watchdog reset and 
+    recording some voltage values."""
+
     command_signal = pyqtSignal(str)
     sleep_signal = pyqtSignal(int)
     complete_signal = pyqtSignal()
@@ -405,6 +423,8 @@ class XmegaProg(QWizardPage):
         self.is_complete = False
 
     def process_error(self):
+        """Creates a QMessagebox warning for an AVR programming error."""
+
         QMessageBox.warning(self, "Warning!", "Programming Error: Check" 
                             " AVR connection and hex files location!")
         D505.unchecked(self.batch_lbl, self.batch_chkbx)
@@ -412,28 +432,39 @@ class XmegaProg(QWizardPage):
         self.initializePage()
 
     def port_warning(self):
+        """Creates a QMessagebox warning when no serial port selected."""
+
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
         D505.unchecked(self.xmega_disconnect_lbl,
                        self.xmega_disconnect_chkbx)
         self.watchdog_pbar.setRange(0, 1)
 
     def isComplete(self):
+        """Overrides isComplete method to check if all user actions have been 
+        completed and set to default the "Next" button if so."""
+
         if self.is_complete:
             self.d505.button(QWizard.CustomButton1).setDefault(False)
             self.d505.button(QWizard.NextButton).setDefault(True)
         return self.is_complete
 
     def start_flash(self):
+        """Starts flash test by emitting command."""
+
         self.batch_pbar_lbl.setText("Erasing flash...")
         self.batch_pbar.setRange(0, 6)
         self.flash_signal.emit()
 
     def flash_update(self, cmd_text):
+        """Updates the flash programming progressbar."""
+
         self.batch_pbar_lbl.setText(self.flash_statuses[cmd_text])
         self.flash_counter += 1
         self.batch_pbar.setValue(self.flash_counter)
 
     def flash_failed(self, cmd_text):
+        """Handles case where flash programming failed."""
+
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
         D505.unchecked(self.batch_lbl, self.batch_chkbx)
@@ -442,6 +473,8 @@ class XmegaProg(QWizardPage):
         self.tu.xmega_prog_status.setText("XMega Programming: FAIL")
 
     def flash_finished(self):
+        """Handles case where flash programming is successful."""
+
         self.xmega_disconnect_chkbx.setEnabled(True)
         self.tu.xmega_prog_status.setStyleSheet(D505.status_style_pass)
         self.tu.xmega_prog_status.setText("XMega Programming: PASS")
