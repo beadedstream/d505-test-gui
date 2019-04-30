@@ -409,6 +409,7 @@ class XmegaProg(QWizardPage):
         self.flash.command_failed.connect(self.flash_failed)
         self.flash.flash_finished.connect(self.flash_finished)
         self.flash.process_error_signal.connect(self.process_error)
+        self.flash.file_not_found_signal.connect(self.file_not_found)
 
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.d505.button(QWizard.NextButton).setAutoDefault(False)
@@ -427,6 +428,16 @@ class XmegaProg(QWizardPage):
 
         QMessageBox.warning(self, "Warning!", "Programming Error: Check" 
                             " AVR connection and hex files location!")
+        D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        self.batch_pbar_lbl.setText("Flash Xmega")
+        self.initializePage()
+
+    def file_not_found(self):
+        """Creates a QMessageBox warning when config files are not set."""
+
+        QMessageBox.warning(self, "Warning!", "File not found! Check "
+                            "configuration settings for correct file "
+                            "locations.")
         D505.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
         self.initializePage()

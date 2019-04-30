@@ -9,6 +9,7 @@ class FlashD505(QObject):
     command_failed = pyqtSignal(str)
     flash_finished = pyqtSignal()
     process_error_signal = pyqtSignal()
+    file_not_found_signal = pyqtSignal()
 
     def __init__(self, atprogram_path, hex_files_path):
         super().__init__()
@@ -92,5 +93,9 @@ class FlashD505(QObject):
             except subprocess.CalledProcessError:
                 self.process_error_signal.emit()
                 break
+            except FileNotFoundError:
+                self.file_not_found_signal.emit()
+                break
+
 
         self.flash_finished.emit()
