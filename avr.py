@@ -4,10 +4,12 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
 class FlashD505(QObject):
+    """Class that flashes the D505 board with hex files."""
     command_succeeded = pyqtSignal(str)
     command_failed = pyqtSignal(str)
     flash_finished = pyqtSignal()
     process_error_signal = pyqtSignal()
+    file_not_found_signal = pyqtSignal()
 
     def __init__(self, atprogram_path, hex_files_path):
         super().__init__()
@@ -72,6 +74,7 @@ class FlashD505(QObject):
 
     @pyqtSlot()
     def flash(self):
+        """Loops through all the commands to flash the D505 board."""
 
         for cmd_text, cmd in self.commands.items():
             try:
@@ -90,5 +93,9 @@ class FlashD505(QObject):
             except subprocess.CalledProcessError:
                 self.process_error_signal.emit()
                 break
+            except FileNotFoundError:
+                self.file_not_found_signal.emit()
+                break
+
 
         self.flash_finished.emit()

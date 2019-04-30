@@ -10,24 +10,37 @@ class ValueNotSet(Exception):
 
 
 class Model:
+    """The model class for storing test limits and other relevant data and 
+    checking recorded values against the limits.
+
+    Instance variables:
+    limits        --  Test variable ranges and limits.
+    tac           --  Tac Ids, lead length and other values.
+    internal_5v   --  Internally measured 5 V supply voltage.
+    input_v       --  Externally measured supply voltage.
+
+    Instance methods:
+    compare_to_limit   --  Compare value against limits and return result.
+    """
+
     def __init__(self):
         self.limits = {
             "v_input_min": 5.0,
             "v_input_max": 7.0,
-            "i_input_min": 0,
-            "i_input_max": 6.0,
+            "i_input_min": 0.5,
+            "i_input_max": 80.0,
             "2v_min": 1.90,
             "2v_max": 2.10,
             "5v_min": 4.85,
             "5v_max": 5.15,
-            "5v_uart_tolerance": 0.02,
-            "5v_uart_off": 0.3,
+            "5v_uart_tolerance": 0.03,
+            "5v_uart_off": 0.35,
             "bat_v_tolerance": 0.10,
             "deep_sleep_min": 30,
-            "deep_sleep_max": 70,
-            "solar_i": 40,
-            "solar_v_min": 5,
-            "solar_v_max": 8
+            "deep_sleep_max": 85,
+            "solar_i_min": 40,
+            "solar_v_min": 6,
+            "solar_v_max": 7
         }
         self.tac = {
             "tac1": None,
@@ -39,24 +52,12 @@ class Model:
             "2": 0.250,
             "3": 0.500
         }
-        self.ser_port = None
         self.internal_5v = None
         self.input_v = None
 
-    def snow_depth(self, s):
-        p = r"([0-9]){1,4}(\scm)"
-        if re.match(p, s):
-            return True
-        else:
-            return False
-
-    def set_tac_id(self, tac_num, tac_id):
-        self.tac[tac_num] = tac_id
-
-    def set_serial_port(self, port):
-        self.ser_port = port
-
     def compare_to_limit(self, limit, value):
+        """Compare input value against limit and return the result as a bool."""
+
         if limit == "input_v":
             self.input_v = value
             return (value >= self.limits["v_input_min"] and
@@ -107,8 +108,8 @@ class Model:
             return (value >= self.limits["solar_v_min"] and
                     value <= self.limits["solar_v_max"])
 
-        elif limit == "solar_i":
-            return (value >= self.limits["solar_i"])
+        elif limit == "solar_i_min":
+            return (value >= self.limits["solar_i_min"])
 
         else:
             raise InvalidLimit

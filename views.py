@@ -15,10 +15,10 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "0.1.1"
+VERSION_NUM = "1.0.0"
 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = 1400
+WINDOW_HEIGHT = 800
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2019.
@@ -31,14 +31,19 @@ class InvalidMsgType(Exception):
 
 
 class TestUtility(QMainWindow):
+    """Main class for the PCBA Test Utility.
+    
+    Creates main window for the program, the file menu, status bar, and the 
+    settings/configuration window.
+    """
     def __init__(self):
         super().__init__()
         self.system_font = QApplication.font().family()
-        self.label_font = QFont(self.system_font, 14)
+        self.label_font = QFont(self.system_font, 12)
         self.config_font = QFont(self.system_font, 12)
         self.config_path_font = QFont(self.system_font, 12)
 
-        self.settings = QSettings("BeadedStream", "PCBTestUtility")
+        self.settings = QSettings("BeadedStream", "PCBATestUtility")
 
         settings_defaults = {
             "port1_tac_id": "",
@@ -86,7 +91,7 @@ class TestUtility(QMainWindow):
         self.quit.setStatusTip("Exit Program")
         self.quit.triggered.connect(self.close)
 
-        self.about_tu = QAction("About Test Utility", self)
+        self.about_tu = QAction("About PCBA Test Utility", self)
         self.about_tu.setShortcut("Ctrl+U")
         self.about_tu.setStatusTip("About Program")
         self.about_tu.triggered.connect(self.about_program)
@@ -114,17 +119,28 @@ class TestUtility(QMainWindow):
         self.help_menu.addAction(self.about_tu)
         self.help_menu.addAction(self.aboutqt)
 
+        self.initUI()
         self.center()
 
-        self.initUI()
-    
-    # Get logo path
+    def center(self):
+        """Centers the application on the screen the mouse pointer is
+        currently on."""
+        frameGm = self.frameGeometry()
+        screen = QApplication.desktop().screenNumber(
+            QApplication.desktop().cursor().pos())
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
+        
     def resource_path(self, relative_path):
-         if hasattr(sys, '_MEIPASS'):
+        """Gets the path of the application relative root path to allow us
+        to find the logo."""
+        if hasattr(sys, '_MEIPASS'):
              return os.path.join(sys._MEIPASS, relative_path)
-         return os.path.join(os.path.abspath("."), relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
 
     def initUI(self):
+        """"Sets up the UI."""
         RIGHT_SPACING = 350
         LINE_EDIT_WIDTH = 200
         self.central_widget = QWidget()
@@ -203,6 +219,7 @@ class TestUtility(QMainWindow):
         self.setWindowTitle("BeadedStream Manufacturing Test Utility")
 
     def create_messagebox(self, type, title, text, info_text):
+        """A helper method for creating message boxes."""
         msgbox = QMessageBox(self)
         msgbox.setWindowTitle(title)
         msgbox.setText(text)
@@ -217,19 +234,16 @@ class TestUtility(QMainWindow):
             raise InvalidMsgType
         return msgbox
 
-    def center(self):
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
     def about_program(self):
-        QMessageBox.about(self, "About TestUtility", ABOUT_TEXT)
+        """Displays information about the program."""
+        QMessageBox.about(self, "About PCBA Test Utility", ABOUT_TEXT)
 
     def about_qt(self):
+        """Displays information about Qt."""
         QMessageBox.aboutQt(self, "About Qt")
 
     def populate_ports(self):
+        """Doc string goes here."""
         ports = serialmanager.SerialManager.scan_ports()
         self.ports_menu.clear()
 
@@ -246,7 +260,10 @@ class TestUtility(QMainWindow):
                 action.setChecked(True)
             self.ports_group.addAction(action)
 
-    def connect_port(self, action):
+    def connect_port(self, action: QAction):
+        """Connects to a COM port by parsing the text from a clicked QAction
+        menu object."""
+
         p = "COM[0-9]+"
         m = re.search(p, action.text())
         if m:
@@ -258,9 +275,11 @@ class TestUtility(QMainWindow):
             QMessageBox.warning(self, "Warning", "Invalid port selection!")
 
     def port_unavailable(self):
+        """Displays warning message about unavailable port."""
         QMessageBox.warning(self, "Warning", "Port unavailable!")
 
     def parse_values(self):
+        """Parses and validates input values from the start page."""
         self.tester_id = self.tester_id_input.text().upper()
         self.pcba_pn = self.pcba_pn_input.currentText()
         self.pcba_sn = self.pcba_sn_input.text().upper()
@@ -289,7 +308,9 @@ class TestUtility(QMainWindow):
         self.start_procedure()
 
     def start_procedure(self):
-
+        """Sets up procedure layout by creating test statuses and initializing
+        the appropriate board class (currently D505, potentially others in 
+        the future)."""
         central_widget = QWidget()
 
         status_lbl_stylesheet = ("QLabel {border: 2px solid grey;"
@@ -304,10 +325,11 @@ class TestUtility(QMainWindow):
         self.input_v_status = QLabel(f"Input Voltage: _____ V")
         self.input_i_status = QLabel(f"Input Current: _____ mA")
         self.supply_2v_status = QLabel("2V Supply: _____V")
+        self.xmega_prog_status = QLabel("XMega Programming: _____")
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
-        self.xmega_prog_status = QLabel("Xmega Programming:_____")
+        self.one_wire_prog_status = QLabel("1-Wire Master Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
@@ -323,10 +345,11 @@ class TestUtility(QMainWindow):
         self.input_v_status.setStyleSheet(status_lbl_stylesheet)
         self.input_i_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_2v_status.setStyleSheet(status_lbl_stylesheet)
+        self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.supply_5v_status.setStyleSheet(status_lbl_stylesheet)
         self.uart_5v_status.setStyleSheet(status_lbl_stylesheet)
         self.uart_off_status.setStyleSheet(status_lbl_stylesheet)
-        self.xmega_prog_status.setStyleSheet(status_lbl_stylesheet)
+        self.one_wire_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
         self.xmega_inter_status.setStyleSheet(status_lbl_stylesheet)
@@ -345,10 +368,11 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.input_v_status)
         status_vbox1.addWidget(self.input_i_status)
         status_vbox1.addWidget(self.supply_2v_status)
+        status_vbox1.addWidget(self.xmega_prog_status)
         status_vbox1.addWidget(self.supply_5v_status)
         status_vbox1.addWidget(self.uart_5v_status)
         status_vbox1.addWidget(self.uart_off_status)
-        status_vbox1.addWidget(self.xmega_prog_status)
+        status_vbox1.addWidget(self.one_wire_prog_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
         status_vbox1.addWidget(self.xmega_inter_status)
@@ -360,6 +384,7 @@ class TestUtility(QMainWindow):
         status_vbox1.addStretch()
 
         status_group = QGroupBox("Test Statuses")
+        status_group.setFont(self.label_font)
         status_group.setLayout(status_vbox1)
 
         # Use the product data dictionary to call the procdure class that
@@ -382,6 +407,7 @@ class TestUtility(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def configuration(self):
+        """Sets up configuration/settings window elements."""
         FILE_BTN_WIDTH = 30
 
         self.settings_widget = QDialog(self)
@@ -522,6 +548,8 @@ class TestUtility(QMainWindow):
         # self.settings_widget.resize(800, 600)
 
     def set_hex_dir(self):
+        """Opens file dialog for selecting the hex files directory."""
+
         hex_files_path = QFileDialog.getExistingDirectory(
             self,
             "Select hex files directory."
@@ -529,6 +557,8 @@ class TestUtility(QMainWindow):
         self.hex_path_lbl.setText(hex_files_path)
 
     def set_report_location(self):
+        """Opens file dialog for setting the save location for the report."""
+
         report_dir = QFileDialog.getExistingDirectory(
             self,
             "Select report save location."
@@ -536,6 +566,8 @@ class TestUtility(QMainWindow):
         self.report_path_lbl.setText(report_dir)
 
     def choose_atprogram_file(self):
+        """Opens file dialog for selecting the atprogram executable."""
+
         atprogram_file_path = QFileDialog.getOpenFileName(
             self,
             "Select atprogram.exe.",
@@ -545,9 +577,13 @@ class TestUtility(QMainWindow):
         self.atprogram_path_lbl.setText(atprogram_file_path)
 
     def cancel_settings(self):
+        """Close the settings widget without applying changes."""
+
         self.settings_widget.close()
 
     def apply_settings(self):
+        """Read user inputs and apply settings."""
+
         tac_ports = {
             "port1_tac_id": self.port1_tac_id,
             "port2_tac_id": self.port2_tac_id,
@@ -584,6 +620,9 @@ class TestUtility(QMainWindow):
         self.settings_widget.close()
 
     def closeEvent(self, event):
+        """Override QWidget closeEvent to provide user with confirmation
+        dialog and ensure threads are terminated appropriately."""
+
         event.accept()
 
         quit_msg = "Are you sure you want to exit the program?"
@@ -597,11 +636,3 @@ class TestUtility(QMainWindow):
             event.accept()
         else:
             event.ignore()
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-    app.setStyle("fusion")
-    window = TestUtility()
-    window.show()
-    sys.exit(app.exec_())
