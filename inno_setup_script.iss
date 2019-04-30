@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "PCBA Test Utility"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "BeadedStream"
 #define MyAppURL "http://www.beadedstream.com/"
 #define MyAppExeName "pcba_test_utility.exe"

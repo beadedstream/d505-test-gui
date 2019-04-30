@@ -10,6 +10,19 @@ class ValueNotSet(Exception):
 
 
 class Model:
+    """The model class for storing test limits and other relevant data and 
+    checking recorded values against the limits.
+
+    Instance variables:
+    limits        --  Test variable ranges and limits.
+    tac           --  Tac Ids, lead length and other values.
+    internal_5v   --  Internally measured 5 V supply voltage.
+    input_v       --  Externally measured supply voltage.
+
+    Instance methods:
+    compare_to_limit   --  Compare value against limits and return result.
+    """
+
     def __init__(self):
         self.limits = {
             "v_input_min": 5.0,
@@ -39,24 +52,12 @@ class Model:
             "2": 0.250,
             "3": 0.500
         }
-        self.ser_port = None
         self.internal_5v = None
         self.input_v = None
 
-    def snow_depth(self, s):
-        p = r"([0-9]){1,4}(\scm)"
-        if re.match(p, s):
-            return True
-        else:
-            return False
-
-    def set_tac_id(self, tac_num, tac_id):
-        self.tac[tac_num] = tac_id
-
-    def set_serial_port(self, port):
-        self.ser_port = port
-
     def compare_to_limit(self, limit, value):
+        """Compare input value against limit and return the result as a bool."""
+
         if limit == "input_v":
             self.input_v = value
             return (value >= self.limits["v_input_min"] and

@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
 class SerialManager(QObject):
+    """Class that handles the serial connection."""
     data_ready = pyqtSignal(str)
     no_port_sel = pyqtSignal()
     sleep_finished = pyqtSignal()
@@ -27,10 +28,12 @@ class SerialManager(QObject):
         self.end = b"\r\n>"
 
     def scan_ports():
+        """Scan and return list of connected comm ports."""
         return serial.tools.list_ports.comports()
 
     @pyqtSlot(str)
     def send_command(self, command):
+        """Checks connection to the serial port and sends a command."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -46,6 +49,7 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def one_wire_test(self):
+        """Sends command for one wire test and evaluates the result."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -64,6 +68,7 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def reprogram_one_wire(self):
+        """Sends command to reprogram one wire master."""
         if self.ser.is_open:
             try:
                 self.ser.write("reprogram-1-wire-master\r\n".encode())
@@ -79,6 +84,8 @@ class SerialManager(QObject):
 
     @pyqtSlot(str)
     def write_hex_file(self, file_path):
+        """Writes hex file line-by-line with appropriate delay between
+        each name."""
         if self.ser.is_open:
             try:
                 with open(file_path, "rb") as f:
@@ -98,6 +105,7 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def iridium_command(self):
+        """Sends commands for reading from the iridium."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -121,6 +129,8 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def flash_test(self):
+        """Writes dummy data to flash, checks that it was written and then 
+        clears it."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -171,6 +181,7 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def gps_test(self):
+        """Checks that the board has communication with the GPS module."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -195,6 +206,7 @@ class SerialManager(QObject):
 
     @pyqtSlot(str)
     def set_serial(self, serial_num):
+        """Sets the serial port."""
         if self.ser.is_open:
             try:
                 self.flush_buffers
@@ -218,6 +230,8 @@ class SerialManager(QObject):
 
     @pyqtSlot()
     def rtc_test(self):
+        """Sets the time, sets an alarm and then checks that the alert
+        is set."""
         if self.ser.is_open:
             try:
                 self.flush_buffers
@@ -253,10 +267,12 @@ class SerialManager(QObject):
 
     @pyqtSlot(int)
     def sleep(self, interval):
+        """Wait for a specified time period."""
         time.sleep(interval)
         self.sleep_finished.emit()
 
     def is_connected(self, port):
+        """Checks for serial connection."""
         try:
             self.ser.write(b"\r\n")
             time.sleep(0.1)
@@ -266,6 +282,7 @@ class SerialManager(QObject):
         return self.ser.port == port and self.ser.is_open
 
     def open_port(self, port):
+        """Opens serial port."""
         try:
             self.ser.close()
             self.ser.port = port
@@ -274,9 +291,12 @@ class SerialManager(QObject):
             self.port_unavailable_signal.emit()
 
     def flush_buffers(self):
+        """Flushes the serial buffer by writing to the buffer and then reading
+        all the available bytes."""
         self.ser.write("\r\n".encode())
         time.sleep(0.5)
         self.ser.read(self.ser.in_waiting)
 
     def close_port(self):
+        """Closes serial port."""
         self.ser.close()

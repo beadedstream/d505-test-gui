@@ -4,6 +4,20 @@ from datetime import datetime as dt
 
 
 class Report:
+    """Test Report class. Tracks status of tests and creates test report.
+    
+    Instance Variables
+    timestamp   -- Used to store the current timestamp for naming the report.
+    date        -- Stores date in dd--mm--yy format.
+    test_result -- Boolean storing success or failure of the sum of the tests.
+    data        -- Dictionary of test variables and their results and values.
+
+    Instance Methods
+    write_data          -- Updates data model.
+    set_file_location   -- Sets file path for report location.
+    generate_report     -- Generates report and saves to path location.
+    """
+
     def __init__(self):
         today = dt.now()
         self.timestamp = None
