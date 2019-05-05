@@ -1112,6 +1112,7 @@ class XmegaInterfaces(QWizardPage):
         except IndexError:
             QMessageBox.warning(self, "TAC Connection",
                                 "Serial error or bad value")
+            self.report.write_data("tac_connected", "", "FAIL")
             self.page_fail()
 
         self.xmega_pbar_counter += 1
