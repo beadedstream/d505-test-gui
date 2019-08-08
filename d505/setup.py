@@ -32,7 +32,7 @@ class Setup(QWizardPage):
         self.step_a_chkbx.clicked.connect(
             lambda: D505.checked(self.step_a_lbl, self.step_a_chkbx))
 
-        self.step_b_lbl = QLabel("Record Input voltage: ", self)
+        self.step_b_lbl = QLabel("Record Input voltage (by F1): ", self)
         self.step_b_lbl.setFont(self.label_font)
         # self.step_b_lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.step_b_input = QLineEdit()
