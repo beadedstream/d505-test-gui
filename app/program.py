@@ -1,4 +1,13 @@
-from d505 import *
+import utilities
+import avr
+import re
+from pathlib import Path
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class Program(QWizardPage):
@@ -40,7 +49,7 @@ class Program(QWizardPage):
                                                    {width: 20px; \
                                                    height: 20px}")
         self.batch_chkbx.clicked.connect(
-            lambda: D505.checked(self.batch_lbl, self.batch_chkbx))
+            lambda: utilities.checked(self.batch_lbl, self.batch_chkbx))
         self.batch_chkbx.clicked.connect(self.start_flash)
 
         self.batch_pbar_lbl = QLabel("Flash Xmega.")
@@ -57,8 +66,8 @@ class Program(QWizardPage):
                                                    {width: 20px; \
                                                    height: 20px}")
         self.xmega_disconnect_chkbx.clicked.connect(
-            lambda: D505.checked(self.xmega_disconnect_lbl,
-                                 self.xmega_disconnect_chkbx))
+            lambda: utilities.checked(self.xmega_disconnect_lbl,
+                                          self.xmega_disconnect_chkbx))
         self.xmega_disconnect_chkbx.clicked.connect(self.start_uart_tests)
 
         self.watchdog_pbar_lbl = QLabel("Resetting watchdog...")
@@ -138,7 +147,7 @@ class Program(QWizardPage):
         at_path = self.tu.settings.value("atprogram_file_path")
         hex_path = Path(self.tu.settings.value("hex_files_path"))
 
-        (main_file, _) = D505.get_latest_version(hex_path, "main-app")
+        (main_file, _) = utilities.get_latest_version(hex_path, "main-app")
 
         if main_file:
             self.flash = avr.FlashD505(at_path, hex_path, str(main_file))
@@ -177,7 +186,7 @@ class Program(QWizardPage):
 
         QMessageBox.warning(self, "Warning!", "Programming Error: Check"
                             " AVR connection and hex files location!")
-        D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
         self.initializePage()
 
@@ -187,7 +196,7 @@ class Program(QWizardPage):
         QMessageBox.warning(self, "Warning!", "File not found! Check "
                             "configuration settings for correct file "
                             "locations.")
-        D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
         self.initializePage()
 
@@ -195,7 +204,7 @@ class Program(QWizardPage):
         """Creates a QMessagebox warning when no serial port selected."""
 
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
-        D505.unchecked(self.xmega_disconnect_lbl,
+        utilities.unchecked(self.xmega_disconnect_lbl,
                        self.xmega_disconnect_chkbx)
         self.watchdog_pbar.setRange(0, 1)
 
@@ -227,16 +236,16 @@ class Program(QWizardPage):
 
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
-        D505.unchecked(self.batch_lbl, self.batch_chkbx)
+        utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
-        self.tu.xmega_prog_status.setStyleSheet(D505.status_style_fail)
+        self.tu.xmega_prog_status.setStyleSheet(self.d505.status_style_fail)
         self.tu.xmega_prog_status.setText("XMega Programming: FAIL")
 
     def flash_finished(self):
         """Handles case where flash programming is successful."""
 
         self.xmega_disconnect_chkbx.setEnabled(True)
-        self.tu.xmega_prog_status.setStyleSheet(D505.status_style_pass)
+        self.tu.xmega_prog_status.setStyleSheet(self.d505.status_style_pass)
         self.tu.xmega_prog_status.setText("XMega Programming: PASS")
         self.flash_thread.quit()
         self.flash_thread.wait()
@@ -263,7 +272,7 @@ class Program(QWizardPage):
             self.report.write_data("xmega_app", "", "FAIL")
             self.watchdog_pbar.setRange(0, 1)
             self.watchdog_pbar.setValue(0)
-            D505.unchecked(self.xmega_disconnect_lbl,
+            utilities.unchecked(self.xmega_disconnect_lbl,
                            self.xmega_disconnect_chkbx)
             return
         bootloader_version = bootloader_version.strip("\r\n")
@@ -304,11 +313,11 @@ class Program(QWizardPage):
         if(value_pass):
             self.report.write_data("supply_5v", supply_5v_val, "PASS")
             self.tu.supply_5v_status.setStyleSheet(
-                D505.status_style_pass)
+                self.d505.status_style_pass)
         else:
             self.report.write_data("supply_5v", supply_5v_val, "FAIL")
             self.tu.supply_5v_status.setStyleSheet(
-                D505.status_style_fail)
+                self.d505.status_style_fail)
 
         self.tu.supply_5v_status.setText(
             f"5V Supply: {supply_5v_val} V")
@@ -331,10 +340,10 @@ class Program(QWizardPage):
 
         if (value_pass):
             self.report.write_data("uart_5v", uart_5v_val, "PASS")
-            self.tu.uart_5v_status.setStyleSheet(D505.status_style_pass)
+            self.tu.uart_5v_status.setStyleSheet(self.d505.status_style_pass)
         else:
             self.report.write_data("uart_5v", uart_5v_val, "FAIL")
-            self.tu.uart_5v_status.setStyleSheet(D505.status_style_fail)
+            self.tu.uart_5v_status.setStyleSheet(self.d505.status_style_fail)
 
         self.tu.uart_5v_status.setText(f"5V UART {uart_5v_val} V")
         self.command_signal.emit("5V 0")
@@ -365,11 +374,11 @@ class Program(QWizardPage):
 
         if (value_pass):
             self.report.write_data("off_5v", uart_off_val, "PASS")
-            self.tu.uart_off_status.setStyleSheet(D505.status_style_pass)
+            self.tu.uart_off_status.setStyleSheet(self.d505.status_style_pass)
             self.supply_5v_pbar_lbl.setText("Complete.")
         else:
             self.report.write_data("off_5v", uart_off_val, "FAIL")
-            self.tu.uart_off_status.setStyleSheet(D505.status_style_fail)
+            self.tu.uart_off_status.setStyleSheet(self.d505.status_style_fail)
             self.supply_5v_pbar_lbl.setText("Failed.")
 
         self.tu.uart_off_status.setText(f"5 V Off: {uart_off_val} V")

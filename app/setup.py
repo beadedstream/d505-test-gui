@@ -1,4 +1,10 @@
-from d505 import *
+import utilities
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class Setup(QWizardPage):
@@ -30,7 +36,7 @@ class Setup(QWizardPage):
         self.step_a_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.step_a_chkbx.clicked.connect(
-            lambda: D505.checked(self.step_a_lbl, self.step_a_chkbx))
+            lambda: utilities.checked(self.step_a_lbl, self.step_a_chkbx))
 
         self.step_b_lbl = QLabel("Record Input voltage (by F1): ", self)
         self.step_b_lbl.setFont(self.label_font)
@@ -138,22 +144,22 @@ class Setup(QWizardPage):
 
         if (self.model.compare_to_limit(limits[0], values[0])):
             self.tu.input_v_status.setStyleSheet(
-                D505.status_style_pass)
+                self.d505.status_style_pass)
         else:
             self.tu.input_v_status.setStyleSheet(
-                D505.status_style_fail)
+                self.d505.status_style_fail)
         if (self.model.compare_to_limit(limits[1], values[1])):
             self.tu.input_i_status.setStyleSheet(
-                D505.status_style_pass)
+                self.d505.status_style_pass)
         else:
             self.tu.input_i_status.setStyleSheet(
-                D505.status_style_fail)
+                d505.status_style_fail)
         if (self.model.compare_to_limit(limits[2], values[2])):
             self.tu.supply_2v_status.setStyleSheet(
-                D505.status_style_pass)
+                self.d505.status_style_pass)
         else:
             self.tu.supply_2v_status.setStyleSheet(
-                D505.status_style_fail)
+                self.d505.status_style_fail)
         self.is_complete = True
         self.complete_signal.emit()
 

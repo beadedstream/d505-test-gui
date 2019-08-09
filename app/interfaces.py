@@ -1,4 +1,11 @@
-from d505 import *
+import utilities
+import re
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class XmegaInterfaces(QWizardPage):
@@ -83,12 +90,12 @@ class XmegaInterfaces(QWizardPage):
     def page_pass(self):
         self.tu.xmega_inter_status.setText("Xmega Interfaces: PASS")
         self.tu.xmega_inter_status.setStyleSheet(
-            D505.status_style_pass)
+            self.d505.status_style_pass)
 
     def page_fail(self):
         self.tu.xmega_inter_status.setText("Xmega Interfaces: FAIL")
         self.tu.xmega_inter_status.setStyleSheet(
-            D505.status_style_fail)
+            self.d505.status_style_fail)
         self.page_pass_status = False
 
     def check_serial(self):

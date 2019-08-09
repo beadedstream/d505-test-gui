@@ -1,4 +1,11 @@
-from d505 import *
+import utilities
+import re
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class CypressBLE(QWizardPage):
@@ -40,7 +47,7 @@ class CypressBLE(QWizardPage):
         self.psoc_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
                                                  {width: 20px; height: 20px}")
         self.psoc_disconnect_chkbx.clicked.connect(
-            lambda: D505.checked(self.psoc_disconnect_lbl,
+            lambda: utilities.checked(self.psoc_disconnect_lbl,
                                  self.psoc_disconnect_chkbx))
 
         self.pwr_cycle_lbl = QLabel("Power cycle DUT (unplug and replug "
@@ -50,7 +57,7 @@ class CypressBLE(QWizardPage):
         self.pwr_cycle_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.pwr_cycle_chkbx.clicked.connect(
-            lambda: D505.checked(self.pwr_cycle_lbl, self.pwr_cycle_chkbx))
+            lambda: utilities.checked(self.pwr_cycle_lbl, self.pwr_cycle_chkbx))
 
         self.bt_comm_lbl = QLabel("Verify communication to 505 with "
                                   "bluetooth device.")
@@ -68,7 +75,7 @@ class CypressBLE(QWizardPage):
         self.leds_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.leds_chkbx.clicked.connect(
-            lambda: D505.checked(self.leds_lbl, self.leds_chkbx))
+            lambda: utilities.checked(self.leds_lbl, self.leds_chkbx))
         self.leds_chkbx.clicked.connect(self.psoc_version)
 
         self.psoc_pbar = QProgressBar()
@@ -123,7 +130,7 @@ class CypressBLE(QWizardPage):
     def ble_pass(self):
         self.tu.ble_prog_status.setText("BLE Programming: PASS")
         self.tu.ble_prog_status.setStyleSheet(
-            D505.status_style_pass)
+            self.d505.status_style_pass)
         self.ble_lbl.setStyleSheet("QLabel {color: grey}")
         self.report.write_data("ble_prog", "", "PASS")
         self.ble_btn_pass.setEnabled(False)
@@ -132,7 +139,7 @@ class CypressBLE(QWizardPage):
     def ble_fail(self):
         self.tu.ble_prog_status.setText("BLE Programming: FAIL")
         self.tu.ble_prog_status.setStyleSheet(
-            D505.status_style_fail)
+            self.d505.status_style_fail)
         self.ble_lbl.setStyleSheet("QLabel {color: grey}")
         self.report.write_data("ble_prog", "", "FAIL")
         self.ble_btn_pass.setEnabled(False)
@@ -141,7 +148,7 @@ class CypressBLE(QWizardPage):
     def bt_comm_pass(self):
         self.tu.bluetooth_test_status.setText("Bluetooth Test: PASS")
         self.tu.bluetooth_test_status.setStyleSheet(
-            D505.status_style_pass)
+            self.d505.status_style_pass)
         self.bt_comm_lbl.setStyleSheet("QLabel {color: grey}")
         self.report.write_data("bt_comms", "", "PASS")
         self.bt_comm_btn_pass.setEnabled(False)
@@ -150,7 +157,7 @@ class CypressBLE(QWizardPage):
     def bt_comm_fail(self):
         self.tu.bluetooth_test_status.setText("Bluetooth Test: FAIL")
         self.tu.bluetooth_test_status.setStyleSheet(
-            D505.status_style_fail)
+            self.d505.status_style_fail)
         self.bt_comm_lbl.setStyleSheet("QLabel {color: grey}")
         self.report.write_data("bt_comms", "", "FAIL")
         self.bt_comm_btn_pass.setEnabled(False)

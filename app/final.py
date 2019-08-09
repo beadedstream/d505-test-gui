@@ -1,4 +1,9 @@
-from d505 import *
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class FinalPage(QWizardPage):

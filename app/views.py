@@ -1,6 +1,6 @@
 import os
 import re
-import d505
+import wizard
 import serialmanager
 import model
 import report
@@ -76,8 +76,8 @@ class TestUtility(QMainWindow):
 
         # Part number : [serial prefix, procedure class]
         self.product_data = {
-            "45321-03": ["D505", d505.D505],
-            "45321-02": ["D505", d505.D505]
+            "45321-03": ["D505", wizard.D505],
+            "45321-02": ["D505", wizard.D505]
         }
 
         # Create program actions.

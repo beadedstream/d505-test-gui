@@ -1,4 +1,11 @@
-from d505 import *
+import utilities
+import re
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class UartPower(QWizardPage):
@@ -23,7 +30,7 @@ class UartPower(QWizardPage):
         self.uart_pwr_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; "
                                           "height: 20px}")
         self.uart_pwr_chkbx.clicked.connect(
-            lambda: D505.checked(self.uart_pwr_lbl, self.uart_pwr_chkbx))
+            lambda: utilities.checked(self.uart_pwr_lbl, self.uart_pwr_chkbx))
         self.uart_pwr_chkbx.clicked.connect(self.verify_uart)
 
         self.uart_pbar_lbl = QLabel("Verify UART interface")
@@ -37,7 +44,7 @@ class UartPower(QWizardPage):
         self.red_led_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.red_led_chkbx.clicked.connect(
-            lambda: D505.checked(self.red_led_lbl, self.red_led_chkbx))
+            lambda: utilities.checked(self.red_led_lbl, self.red_led_chkbx))
         self.red_led_chkbx.clicked.connect(self.hall_effect)
 
         self.leds_lbl = QLabel("Remove UART power connection and reconnect the"
@@ -48,7 +55,7 @@ class UartPower(QWizardPage):
         self.leds_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
                                         height: 20px}")
         self.leds_chkbx.clicked.connect(
-            lambda: D505.checked(self.leds_lbl, self.leds_chkbx))
+            lambda: utilities.checked(self.leds_lbl, self.leds_chkbx))
         self.leds_chkbx.clicked.connect(self.page_complete)
 
         self.grid = QGridLayout()
@@ -106,7 +113,7 @@ class UartPower(QWizardPage):
         self.tu.hall_effect_status.setText(
             "Hall Effect Sensor Test: PASS")
         self.tu.hall_effect_status.setStyleSheet(
-            D505.status_style_pass)
+            self.d505.status_style_pass)
         self.leds_chkbx.setEnabled(True)
 
     def isComplete(self):
@@ -116,6 +123,6 @@ class UartPower(QWizardPage):
         self.tu.led_test_status.setText("LED Test: PASS")
         self.report.write_data("led_test", "", "PASS")
         self.tu.led_test_status.setStyleSheet(
-            D505.status_style_pass)
+            self.d505.status_style_pass)
         self.is_complete = True
         self.complete_signal.emit()

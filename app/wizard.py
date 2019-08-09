@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QApplication)
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QThread
-from packaging.version import LegacyVersion
 from setup import Setup
 from program import Program
 from onewire import OneWireMaster
@@ -27,13 +26,14 @@ class D505(QWizard):
     """QWizard class for the D505 board. Sets up the QWizard page and adds the
     individual QWizardPage subpages for each set of tests."""
 
-    status_style_pass = """QLabel {background: #8cff66;
-                        border: 2px solid grey; font-size: 20px}"""
-    status_style_fail = """QLabel {background: #ff5c33;
-                        border: 2px solid grey; font-size: 20px}"""
+
 
     def __init__(self, test_utility, model, serial_manager, report):
         super().__init__()
+        self.status_style_pass = """QLabel {background: #8cff66;
+                        border: 2px solid grey; font-size: 20px}"""
+        self.status_style_fail = """QLabel {background: #ff5c33;
+                        border: 2px solid grey; font-size: 20px}"""
         self.abort_btn = QPushButton("Abort")
         self.abort_btn.clicked.connect(self.abort)
         self.setButton(QWizard.CustomButton1, self.abort_btn)
@@ -93,49 +93,3 @@ class D505(QWizard):
         """Reinitialize the TestUtility main page when tests are finished."""
 
         self.tu.initUI()
-
-    @staticmethod
-    def checked(lbl, chkbx):
-        """Utility function for formatted a checked Qcheckbox."""
-
-        if chkbx.isChecked():
-            chkbx.setEnabled(False)
-            lbl.setStyleSheet("QLabel {color: grey}")
-
-    @staticmethod
-    def unchecked(lbl, chkbx):
-        """Utility function for formatting an unchecked Qcheckbox."""
-
-        if chkbx.isChecked():
-            chkbx.setEnabled(True)
-            chkbx.setChecked(False)
-            lbl.setStyleSheet("QLabel {color: black}")
-
-    @staticmethod
-    def get_latest_version(path: Path, file_name: str) -> (str, str):
-        if file_name == "main-app":
-            filenames = list(path.glob("main-app*.hex"))
-        elif file_name == "one-wire":
-            filenames = list(path.glob("1-wire-master*.hex"))
-        else:
-            raise InvalidType
-
-        current_version = None
-        current_filename = None
-
-        for name in filenames:
-            p = r"([0-9]+\.[0-9]+[a-z])"
-            try:
-                version = re.search(p, str(name)).group()
-            except AttributeError:
-                continue
-
-            if not current_version:
-                current_version = version
-                current_filename = name
-
-            if LegacyVersion(version) > LegacyVersion(current_version):
-                current_version = version
-                current_filename = name
-
-        return (current_filename, current_version)

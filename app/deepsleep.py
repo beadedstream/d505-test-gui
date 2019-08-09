@@ -1,4 +1,10 @@
-from d505 import *
+import utilities
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class DeepSleep(QWizardPage):
@@ -29,7 +35,7 @@ class DeepSleep(QWizardPage):
         self.ble_lbl.setFont(self.label_font)
         self.ble_chkbx = QCheckBox()
         self.ble_chkbx.clicked.connect(
-            lambda: D505.checked(self.ble_lbl, self.ble_chkbx))
+            lambda: utilities.checked(self.ble_lbl, self.ble_chkbx))
 
         self.input_i_lbl = QLabel()
         self.input_i_lbl.setTextFormat(Qt.RichText)
@@ -50,7 +56,7 @@ class DeepSleep(QWizardPage):
             "Use 0.7 V with the current limit set at 2 A.")
         self.solar_lbl.setFont(self.label_font)
         self.solar_chkbx = QCheckBox()
-        self.solar_chkbx.clicked.connect(lambda: D505.checked(
+        self.solar_chkbx.clicked.connect(lambda: utilities.checked(
             self.solar_lbl, self.solar_chkbx))
 
         self.solar_v_lbl = QLabel("Record solar charger voltage at Q22 pin 3.")
@@ -164,24 +170,24 @@ class DeepSleep(QWizardPage):
 
         if deep_sleep_i_pass:
             self.report.write_data("deep_sleep_i", deep_sleep_i, "PASS")
-            self.tu.deep_sleep_i_status.setStyleSheet(D505.status_style_pass)
+            self.tu.deep_sleep_i_status.setStyleSheet(self.d505.status_style_pass)
         else:
             self.report.write_data("deep_sleep_i", deep_sleep_i, "FAIL")
-            self.tu.deep_sleep_i_status.setStyleSheet(D505.status_style_fail)
+            self.tu.deep_sleep_i_status.setStyleSheet(self.d505.status_style_fail)
 
         if solar_i_pass:
             self.report.write_data("solar_i", solar_i, "PASS")
-            self.tu.solar_charge_i_status.setStyleSheet(D505.status_style_pass)
+            self.tu.solar_charge_i_status.setStyleSheet(self.d505.status_style_pass)
         else:
             self.report.write_data("solar_i", solar_i, "FAIL")
-            self.tu.solar_charge_i_status.setStyleSheet(D505.status_style_fail)
+            self.tu.solar_charge_i_status.setStyleSheet(self.d505.status_style_fail)
 
         if solar_v_pass:
             self.report.write_data("solar_v", solar_v, "PASS")
-            self.tu.solar_charge_v_status.setStyleSheet(D505.status_style_pass)
+            self.tu.solar_charge_v_status.setStyleSheet(self.d505.status_style_pass)
         else:
             self.report.write_data("solar_v", solar_v, "FAIL")
-            self.tu.solar_charge_v_status.setStyleSheet(D505.status_style_fail)
+            self.tu.solar_charge_v_status.setStyleSheet(self.d505.status_style_fail)
 
         # Set status text values
         self.tu.deep_sleep_i_status.setText(

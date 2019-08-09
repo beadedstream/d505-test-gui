@@ -1,4 +1,12 @@
-from d505 import *
+import utilities
+import re
+from pathlib import Path
+from PyQt5.QtWidgets import (
+    QWizardPage, QWizard, QLabel, QVBoxLayout, QCheckBox, QGridLayout,
+    QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
+    QApplication)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 
 class OneWireMaster(QWizardPage):
@@ -49,7 +57,7 @@ class OneWireMaster(QWizardPage):
 
         self.hex_files_dir = self.tu.settings.value("hex_files_path")
 
-        (self.one_wire_master_file, _) = D505.get_latest_version(
+        (self.one_wire_master_file, _) = utilities.get_latest_version(
             Path(self.hex_files_dir), "one-wire")
 
         if self.one_wire_master_file:
@@ -73,7 +81,7 @@ class OneWireMaster(QWizardPage):
         pattern = "download hex records now..."
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming 1-wire master. . .")
-            self.file_write_signal.emit(self.one_wire_master_file)
+            self.file_write_signal.emit(str(self.one_wire_master_file))
         else:
             QMessageBox.warning(self, "Xmega1", "Bad command response.")
 
@@ -100,11 +108,11 @@ class OneWireMaster(QWizardPage):
             self.report.write_data("onewire_ver", onewire_version_val, "PASS")
             self.one_wire_lbl.setText("Version recorded.")
             self.tu.one_wire_prog_status.setText("1-Wire Programming: PASS")
-            self.tu.one_wire_prog_status.setStyleSheet(D505.status_style_pass)
+            self.tu.one_wire_prog_status.setStyleSheet(self.d505.status_style_pass)
         else:
             self.report.write_data("onewire_ver", "N/A", "FAIL")
             self.tu.one_wire_prog_status.setText("Xmega Programming: FAIL")
-            self.tu.one_wire_prog_status.setStyleSheet(D505.status_style_fail)
+            self.tu.one_wire_prog_status.setStyleSheet(self.d505.status_style_fail)
             QMessageBox.warning(self, "XMega3", "Bad command response.")
 
         self.is_complete = True
