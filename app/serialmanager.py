@@ -22,7 +22,7 @@ class SerialManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.ser = serial.Serial(None, 115200, timeout=45,
+        self.ser = serial.Serial(None, 115200, timeout=60,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
         self.end = b"\r\n>"

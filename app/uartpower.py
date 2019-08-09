@@ -37,15 +37,15 @@ class UartPower(QWizardPage):
         self.uart_pbar_lbl.setFont(self.label_font)
         self.uart_pbar = QProgressBar()
 
-        self.red_led_lbl = QLabel("Bring magnet over Hall-Effect sensor and"
+        self.hall_effect_lbl = QLabel("Bring magnet over Hall-Effect sensor and"
                                   " verify red LED blinks.")
-        self.red_led_lbl.setFont(self.label_font)
-        self.red_led_chkbx = QCheckBox()
-        self.red_led_chkbx.setStyleSheet("QCheckBox::indicator {width: 20px; \
-                                        height: 20px}")
-        self.red_led_chkbx.clicked.connect(
-            lambda: utilities.checked(self.red_led_lbl, self.red_led_chkbx))
-        self.red_led_chkbx.clicked.connect(self.hall_effect)
+        self.hall_effect_lbl.setFont(self.label_font)
+        self.hall_effect_btn_pass = QPushButton("PASS")
+        self.hall_effect_btn_pass.setMaximumWidth(75)
+        self.hall_effect_btn_fail = QPushButton("FAIL")
+        self.hall_effect_btn_fail.setMaximumWidth(75)
+        self.hall_effect_btn_pass.clicked.connect(self.hall_effect_pass)
+        self.hall_effect_btn_fail.clicked.connect(self.hall_effect_fail)
 
         self.leds_lbl = QLabel("Remove UART power connection and reconnect the"
                                " battery.")
@@ -67,8 +67,9 @@ class UartPower(QWizardPage):
         self.grid.addWidget(self.uart_pbar_lbl, 2, 0)
         self.grid.addWidget(self.uart_pbar, 3, 0)
         self.grid.addWidget(QLabel(), 4, 0)
-        self.grid.addWidget(self.red_led_lbl, 5, 0)
-        self.grid.addWidget(self.red_led_chkbx, 5, 1)
+        self.grid.addWidget(self.hall_effect_lbl, 5, 0)
+        self.grid.addWidget(self.hall_effect_btn_pass, 5, 1)
+        self.grid.addWidget(self.hall_effect_btn_fail, 5, 2)
         self.grid.addWidget(self.leds_lbl, 6, 0)
         self.grid.addWidget(self.leds_chkbx, 6, 1)
 
@@ -85,7 +86,8 @@ class UartPower(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.command_signal.connect(self.sm.send_command)
         self.d505.button(QWizard.NextButton).setEnabled(False)
-        self.red_led_chkbx.setEnabled(False)
+        self.hall_effect_btn_pass.setEnabled(False)
+        self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(False)
 
     def verify_uart(self):
@@ -107,13 +109,25 @@ class UartPower(QWizardPage):
         else:
             QMessageBox.warning(self, "UART Power", "Bad command response.")
             self.report.write_data("uart_comms", "", "FAIL")
-        self.red_led_chkbx.setEnabled(True)
+        self.hall_effect_btn_pass.setEnabled(True)
+        self.hall_effect_btn_fail.setEnabled(True)
 
-    def hall_effect(self):
+    def hall_effect_pass(self):
         self.tu.hall_effect_status.setText(
             "Hall Effect Sensor Test: PASS")
         self.tu.hall_effect_status.setStyleSheet(
             self.d505.status_style_pass)
+        self.hall_effect_btn_pass.setEnabled(False)
+        self.hall_effect_btn_fail.setEnabled(False)
+        self.leds_chkbx.setEnabled(True)
+
+    def hall_effect_fail(self):
+        self.tu.hall_effect_status.setText(
+            "Hall Effect Sensor Test: FAIL")
+        self.tu.hall_effect_status.setStyleSheet(
+            self.d505.status_style_fail)
+        self.hall_effect_btn_pass.setEnabled(False)
+        self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(True)
 
     def isComplete(self):
