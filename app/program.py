@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QApplication)
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QThread
+from packaging.version import LegacyVersion
 
 
 class Program(QWizardPage):
@@ -18,6 +19,10 @@ class Program(QWizardPage):
     sleep_signal = pyqtSignal(int)
     complete_signal = pyqtSignal()
     flash_signal = pyqtSignal()
+    board_version_check = pyqtSignal()
+    test_one_wire = pyqtSignal()
+    reprogram_one_wire = pyqtSignal()
+    file_write_signal = pyqtSignal(str)
 
     def __init__(self, d505, test_utility, serial_manager, model, report):
         super().__init__()
@@ -27,9 +32,40 @@ class Program(QWizardPage):
         self.sm = serial_manager
         self.report = report
         self.model = model
+        self.main_app_file_version = None
+        self.one_wire_file_version = None
+        self.one_wire_file_path = None
 
+        self.flash = avr.FlashD505()
+
+        self.flash_thread = QThread()
+        self.flash.moveToThread(self.flash_thread)
+        self.flash_thread.start()
+
+        self.flash_signal.connect(self.flash.flash)
+        self.flash.command_succeeded.connect(self.flash_update)
+        self.flash.command_failed.connect(self.flash_failed)
+        self.flash.flash_finished.connect(self.flash_finished)
+        self.flash.process_error_signal.connect(self.process_error)
+        self.flash.file_not_found_signal.connect(self.file_not_found)
+        self.flash.generic_error_signal.connect(self.generic_error)
+        self.flash.version_signal.connect(self.set_versions)
+
+        self.command_signal.connect(self.sm.send_command)
+        self.sleep_signal.connect(self.sm.sleep)
+        self.complete_signal.connect(self.completeChanged)
+        self.board_version_check.connect(self.sm.version_check)
+        
+        self.sm.version_signal.connect(self.compare_version)
+        self.sm.no_version.connect(self.no_version)
+        self.sm.line_written.connect(self.update_pbar)
+        self.sm.file_not_found_signal.connect(self.file_not_found)
+        self.sm.generic_error_signal.connect(self.generic_error)
         self.sm.no_port_sel.connect(self.port_warning)
-
+        self.sm.port_unavailable_signal.disconnect()
+        self.sm.port_unavailable_signal.connect(self.port_warning)
+        self.sm.serial_error_signal.connect(self.serial_error)
+        
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 12)
 
@@ -42,7 +78,8 @@ class Program(QWizardPage):
                                "write_lockbits": "Complete!"}
 
         # Widgets
-        self.batch_lbl = QLabel("Connect AVR programmer to board.")
+        self.batch_lbl = QLabel("Connect AVR programmer to board. Ensure serial"
+                                " port is connected in the serial menu.")
         self.batch_lbl.setFont(self.label_font)
         self.batch_chkbx = QCheckBox()
         self.batch_chkbx.setStyleSheet("QCheckBox::indicator \
@@ -50,15 +87,14 @@ class Program(QWizardPage):
                                                    height: 20px}")
         self.batch_chkbx.clicked.connect(
             lambda: utilities.checked(self.batch_lbl, self.batch_chkbx))
-        self.batch_chkbx.clicked.connect(self.start_flash)
+        self.batch_chkbx.clicked.connect(self.check_hex_file_version)
 
         self.batch_pbar_lbl = QLabel("Flash Xmega.")
         self.batch_pbar_lbl.setFont(self.label_font)
         self.batch_pbar = QProgressBar()
 
         self.xmega_disconnect_lbl = QLabel("Remove Xmega programmer from "
-                                           "connector J2. Ensure serial port "
-                                           "is connected in the serial menu.")
+                                           "connector J2.")
         self.xmega_disconnect_lbl.setFont(self.label_font)
         # self.xmega_disconnect_lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.xmega_disconnect_chkbx = QCheckBox()
@@ -144,30 +180,12 @@ class Program(QWizardPage):
         self.setTitle("Xmega Programming and Verification")
 
     def initializePage(self):
-        at_path = self.tu.settings.value("atprogram_file_path")
-        hex_path = Path(self.tu.settings.value("hex_files_path"))
-
-        (main_file, _) = utilities.get_latest_version(hex_path, "main-app")
-
-        if main_file:
-            self.flash = avr.FlashD505(at_path, hex_path, str(main_file))
-            self.flash_thread = QThread()
-            self.flash.moveToThread(self.flash_thread)
-            self.flash_thread.start()
-        else:
-            QMessageBox.warning(self, "Error!", "Missing main-app file!")
-            return
+        self.pbar_value = 0
 
         self.command_signal.connect(self.sm.send_command)
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
         self.flash_signal.connect(self.flash.flash)
-
-        self.flash.command_succeeded.connect(self.flash_update)
-        self.flash.command_failed.connect(self.flash_failed)
-        self.flash.flash_finished.connect(self.flash_finished)
-        self.flash.process_error_signal.connect(self.process_error)
-        self.flash.file_not_found_signal.connect(self.file_not_found)
 
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.d505.button(QWizard.NextButton).setAutoDefault(False)
@@ -181,6 +199,19 @@ class Program(QWizardPage):
         # to be re-enabled.
         self.is_complete = False
 
+    def set_flash_files(self):
+        at_path = self.tu.settings.value("atprogram_file_path")
+        hex_path = Path(self.tu.settings.value("hex_files_path"))
+        self.flash.set_files(at_path, hex_path)
+
+    def generic_error(self, error):
+        QMessageBox.warning(self, "Warning", error)
+        self.initializePage()
+
+    def serial_error(self):
+        QMessageBox.warning(self, "Warning!", "Serial error!")
+        self.initializePage()
+    
     def process_error(self):
         """Creates a QMessagebox warning for an AVR programming error."""
 
@@ -206,6 +237,7 @@ class Program(QWizardPage):
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
         utilities.unchecked(self.xmega_disconnect_lbl,
                        self.xmega_disconnect_chkbx)
+        utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.watchdog_pbar.setRange(0, 1)
 
     def isComplete(self):
@@ -217,10 +249,53 @@ class Program(QWizardPage):
             self.d505.button(QWizard.NextButton).setDefault(True)
         return self.is_complete
 
+    def check_hex_file_version(self):
+        """Checks hex file paths to make sure files exist, finds the main app
+        hex file with the latest version and starts the version check on the
+        board."""
+        self.set_flash_files()
+        self.flash.check_files()
+
+    def set_versions(self, main_app_ver, one_wire_file, one_wire_ver):
+        """Set a variable to have the most recent version of the main app.
+        Start the check of what version the board is running."""
+        self.main_app_file_version = main_app_ver
+        self.one_wire_file_path = one_wire_file
+        self.one_wire_file_version = one_wire_ver
+
+        # Check board version.
+        self.board_version_check.emit()
+
+    def compare_version(self, version: str):
+        """Compare main app file version and board version using 
+        packaging.version LegacyVersion and flash the board with the file if
+        the file version is higher than the board version."""
+        if LegacyVersion(self.main_app_file_version) > LegacyVersion(version):
+            self.start_flash()
+        else:
+            QMessageBox.warning(self, "Warning!", "File version is not newer "
+                                "than board version; skipping...")
+            self.tu.xmega_prog_status.setStyleSheet(
+                self.d505.status_style_pass)
+            self.tu.xmega_prog_status.setText("XMega Programming: PASS")
+
+            self.batch_pbar_lbl.setText("Complete.")
+            self.batch_pbar.setRange(0, 1)
+            self.batch_pbar.setValue(1)
+            self.xmega_disconnect_chkbx.setEnabled(True)
+    
+    def no_version(self):
+        self.start_flash()
+
+    def update_pbar(self):
+        self.pbar_value += 1
+        self.one_wire_pbar.setValue(self.pbar_value)
+
     def start_flash(self):
         """Starts flash test by emitting command."""
 
         self.batch_pbar_lbl.setText("Erasing flash...")
+ 
         self.batch_pbar.setRange(0, 6)
         self.flash_signal.emit()
 
@@ -351,7 +426,7 @@ class Program(QWizardPage):
     def uart_5v0_handler(self, data):
         self.sm.data_ready.disconnect()
         self.sm.sleep_finished.connect(self.sleep_handler)
-        self.sleep_signal.emit(20)
+        self.sleep_signal.emit(15)
 
     def sleep_handler(self):
         self.sm.sleep_finished.disconnect()

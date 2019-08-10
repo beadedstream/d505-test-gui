@@ -33,11 +33,16 @@ class OneWireMaster(QWizardPage):
         self.one_wire_lbl = QLabel()
         self.one_wire_lbl.setFont(self.label_font)
         self.one_wire_pbar = QProgressBar()
+        self.start_btn = QPushButton("Start programming")
+        self.start_btn.setFont(self.label_font)
+        self.start_btn.setMaximumWidth(120)
+        self.start_btn.clicked.connect(self.check_version)
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
         self.layout.addWidget(self.one_wire_lbl)
         self.layout.addWidget(self.one_wire_pbar)
+        self.layout.addWidget(self.start_btn)
         self.layout.addStretch()
 
         self.setLayout(self.layout)
@@ -46,41 +51,77 @@ class OneWireMaster(QWizardPage):
     def initializePage(self):
         self.pbar_value = 0
         self.is_complete = False
+        self.sm.line_written.disconnect()
         self.command_signal.connect(self.sm.send_command)
         self.file_write_signal.connect(self.sm.write_hex_file)
         self.reprogram_signal.connect(self.sm.reprogram_one_wire)
         self.one_wire_test_signal.connect(self.sm.one_wire_test)
         self.complete_signal.connect(self.completeChanged)
-        self.sm.data_ready.connect(self.send_hex_file)
+        self.sm.data_ready.connect(self.compare_versions)
         self.sm.line_written.connect(self.update_pbar)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
+    def check_version(self):
         self.hex_files_dir = self.tu.settings.value("hex_files_path")
 
-        (self.one_wire_master_file, _) = utilities.get_latest_version(
-            Path(self.hex_files_dir), "one-wire")
+        (self.one_wire_master_file, self.one_wire_master_ver) = (
+            utilities.get_latest_version(
+                Path(self.hex_files_dir).glob("1-wire-master*.hex"))
+        )
 
         if self.one_wire_master_file:
-            self.program()
+            self.start_btn.setEnabled(False)
+            self.one_wire_test_signal.emit()
         else:
-            QMessageBox.warning(self, "Error!", "Missing one-wire-master file!")
+            QMessageBox.warning(self, "Error!",
+                                "Missing one-wire-master file!")
+
+    def compare_versions(self, data):
+        self.sm.data_ready.disconnect()
+        pattern = r"([0-9]+\.[0-9a-zA-Z]+)"
+        board_version = re.search(pattern, data)
+        if utilities.newer_file_version(self.one_wire_master_ver,
+                                        board_version):
+            self.sm.data_ready.connect(self.send_hex_file)
+            self.start_programming()
+        else:
+            self.one_wire_lbl.setText("File version not newer than board," 
+                                      " skipping..")
+            self.tu.one_wire_prog_status.setText("1-Wire Programming: PASS")
+            self.tu.one_wire_prog_status.setStyleSheet(self.d505.status_style_pass)
+            self.one_wire_pbar.setRange(0, 1)
+            self.one_wire_pbar.setValue(1)
+            self.is_complete = True
+            self.complete_signal.emit()
 
     def isComplete(self):
         return self.is_complete
 
-    def program(self):
+    def start_programming(self):
         self.one_wire_pbar.setRange(0, 0)
         self.reprogram_signal.emit()
         self.one_wire_lbl.setText("Erasing flash. . .")
 
     def send_hex_file(self, data):
         self.sm.data_ready.disconnect()
-        self.sm.data_ready.connect(self.data_parser)
-        self.one_wire_pbar.setRange(0, 545)
+
+        # Get file length
+        count = 0
+        try:
+            with open(self.one_wire_master_file, "r") as f:
+                for line in f:
+                    count += 1
+            self.one_wire_pbar.setRange(0, count)
+        except IOError:
+            QMessageBox.warning(self, "Warning",
+                                "Can't open one-wire-master file!")
+            return
+
         # Check for response from board before proceeding
         pattern = "download hex records now..."
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming 1-wire master. . .")
+            self.sm.data_ready.connect(self.data_parser)
             self.file_write_signal.emit(str(self.one_wire_master_file))
         else:
             QMessageBox.warning(self, "Xmega1", "Bad command response.")

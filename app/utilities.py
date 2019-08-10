@@ -18,14 +18,7 @@ def unchecked(lbl, chkbx):
         chkbx.setChecked(False)
         lbl.setStyleSheet("QLabel {color: black}")
 
-def get_latest_version(path: Path, file_name: str) -> (str, str):
-    if file_name == "main-app":
-        filenames = list(path.glob("main-app*.hex"))
-    elif file_name == "one-wire":
-        filenames = list(path.glob("1-wire-master*.hex"))
-    else:
-        raise InvalidType
-
+def get_latest_version(filenames: list) -> (str, str):
     current_version = None
     current_filename = None
 
@@ -45,3 +38,9 @@ def get_latest_version(path: Path, file_name: str) -> (str, str):
             current_filename = name
 
     return (current_filename, current_version)
+
+def newer_file_version(file_version: str, board_version: str) -> bool:
+    """Compare the file version and board version and return True if the file
+    version is newer than the board version and the board should be flashed.
+    """
+    return LegacyVersion(file_version) > LegacyVersion(board_version) 
