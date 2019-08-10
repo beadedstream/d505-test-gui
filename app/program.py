@@ -273,13 +273,11 @@ class Program(QWizardPage):
         if LegacyVersion(self.main_app_file_version) > LegacyVersion(version):
             self.start_flash()
         else:
-            QMessageBox.warning(self, "Warning!", "File version is not newer "
+            self.batch_pbar_lbl.setText("File version is not newer "
                                 "than board version; skipping...")
             self.tu.xmega_prog_status.setStyleSheet(
                 self.d505.status_style_pass)
             self.tu.xmega_prog_status.setText("XMega Programming: PASS")
-
-            self.batch_pbar_lbl.setText("Complete.")
             self.batch_pbar.setRange(0, 1)
             self.batch_pbar.setValue(1)
             self.xmega_disconnect_chkbx.setEnabled(True)
@@ -426,7 +424,7 @@ class Program(QWizardPage):
     def uart_5v0_handler(self, data):
         self.sm.data_ready.disconnect()
         self.sm.sleep_finished.connect(self.sleep_handler)
-        self.sleep_signal.emit(15)
+        self.sleep_signal.emit(10)
 
     def sleep_handler(self):
         self.sm.sleep_finished.disconnect()

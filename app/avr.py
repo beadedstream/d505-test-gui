@@ -62,12 +62,12 @@ class FlashD505(QObject):
         chip_erase = [self.atprogram_path,
                       "-t", "avrispmk2",
                       "-i", "pdi",
-                      "-d", "atxmega128a4u",
+                      "-d", "atxmega256a3",
                       "chiperase"]
         prog_boot = [self.atprogram_path,
                      "-t", "avrispmk2",
                      "-i", "pdi",
-                     "-d", "atxmega128a4u",
+                     "-d", "atxmega256a3",
                      "program",
                      "--flash", "-f", str(self.boot_file),
                      "--format", "hex",
@@ -75,7 +75,7 @@ class FlashD505(QObject):
         prog_app = [self.atprogram_path,
                     "-t", "avrispmk2",
                     "-i", "pdi",
-                    "-d", "atxmega128a4u",
+                    "-d", "atxmega256a3",
                     "program",
                     "--flash", "-f", str(self.app_file),
                     "--format", "hex",
@@ -83,7 +83,7 @@ class FlashD505(QObject):
         prog_main = [self.atprogram_path,
                      "-t", "avrispmk2",
                      "-i", "pdi",
-                     "-d", "atxmega128a4u",
+                     "-d", "atxmega256a3",
                      "program",
                      "--flash", "-f", str(self.main_file),
                      "--format", "hex",
@@ -91,13 +91,13 @@ class FlashD505(QObject):
         write_fuses = [self.atprogram_path,
                        "-t", "avrispmk2",
                        "-i", "pdi",
-                       "-d", "atxmega128a4u",
+                       "-d", "atxmega256a3",
                        "write",
-                       "--fuses", "--values", "FF00BFFFFEFF"]
+                       "--fuses", "--values", "FF00BDFFFEDE"]
         write_lockbits = [self.atprogram_path,
                           "-t", "avrispmk2",
                           "-i", "pdi",
-                          "-d", "atxmega128a4u",
+                          "-d", "atxmega256a3",
                           "write",
                           "--lockbits", "--values", "FC"]
 
@@ -108,7 +108,7 @@ class FlashD505(QObject):
                          "prog_main": prog_main,
                          "write_fuses": write_fuses,
                          "write_lockbits": write_lockbits}
-                         
+
         self.version_signal.emit(main_app_ver, 
                                  str(self.one_wire_file), one_wire_ver)
 

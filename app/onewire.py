@@ -30,12 +30,12 @@ class OneWireMaster(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 12)
 
-        self.one_wire_lbl = QLabel()
+        self.one_wire_lbl = QLabel("Program One-Wire-Master")
         self.one_wire_lbl.setFont(self.label_font)
         self.one_wire_pbar = QProgressBar()
         self.start_btn = QPushButton("Start programming")
         self.start_btn.setFont(self.label_font)
-        self.start_btn.setMaximumWidth(120)
+        self.start_btn.setMaximumWidth(150)
         self.start_btn.clicked.connect(self.check_version)
 
         self.layout = QVBoxLayout()
@@ -79,7 +79,13 @@ class OneWireMaster(QWizardPage):
     def compare_versions(self, data):
         self.sm.data_ready.disconnect()
         pattern = r"([0-9]+\.[0-9a-zA-Z]+)"
-        board_version = re.search(pattern, data)
+        m = re.search(pattern, data)
+        if m:
+            board_version = m.group()
+        else:
+            QMessageBox.warning(self, "Error!", "Bad version data!")
+            return
+
         if utilities.newer_file_version(self.one_wire_master_ver,
                                         board_version):
             self.sm.data_ready.connect(self.send_hex_file)
