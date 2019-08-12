@@ -124,7 +124,7 @@ class OneWireMaster(QWizardPage):
             return
 
         # Check for response from board before proceeding
-        pattern = "download hex records now..."
+        pattern = r"download hex records now..."
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming 1-wire master. . .")
             self.sm.data_ready.connect(self.data_parser)
@@ -139,7 +139,7 @@ class OneWireMaster(QWizardPage):
     def data_parser(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.record_version)
-        pattern = "lock bits set"
+        pattern = r"lock bits set"
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming complete.")
             self.one_wire_test_signal.emit()

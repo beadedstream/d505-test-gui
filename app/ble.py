@@ -205,7 +205,7 @@ class CypressBLE(QWizardPage):
 
     def parse_data(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "([0-9)+.([0-9])+.([0-9])+"
+        pattern = r"([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
         if (version):
             self.report.write_data("ble_ver", version.group(), "PASS")

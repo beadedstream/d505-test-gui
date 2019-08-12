@@ -98,7 +98,7 @@ class UartPower(QWizardPage):
 
     def rx_psoc(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "([0-9)+.([0-9])+.([0-9])+"
+        pattern = r"([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
         if (version):
             self.uart_pbar.setRange(0, 1)

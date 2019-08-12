@@ -329,7 +329,7 @@ class TestUtility(QMainWindow):
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
-        self.one_wire_prog_status = QLabel("1-Wire Master Programming:_____")
+        self.one_wire_prog_status = QLabel("1-Wire Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
