@@ -153,7 +153,7 @@ class Setup(QWizardPage):
                 self.d505.status_style_pass)
         else:
             self.tu.input_i_status.setStyleSheet(
-                d505.status_style_fail)
+                self.d505.status_style_fail)
         if (self.model.compare_to_limit(limits[2], values[2])):
             self.tu.supply_2v_status.setStyleSheet(
                 self.d505.status_style_pass)
