@@ -24,11 +24,6 @@ class CypressBLE(QWizardPage):
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 12)
 
-        self.sm.port_unavailable_signal.disconnect()
-        self.sm.port_unavailable_signal.connect(self.port_warning)
-        self.sm.no_port_sel.disconnect()
-        self.sm.no_port_sel.connect(self.port_warning)
-
         self.ble_lbl = QLabel("Run the Cypress programming utility to "
                               "program the CYBLE-224116 BLE module.")
         self.ble_lbl.setFont(self.label_font)
@@ -132,6 +127,11 @@ class CypressBLE(QWizardPage):
         self.command_signal.connect(self.sm.send_command)
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
+
+        self.sm.port_unavailable_signal.disconnect()
+        self.sm.port_unavailable_signal.connect(self.port_warning)
+        self.sm.no_port_sel.disconnect()
+        self.sm.no_port_sel.connect(self.port_warning)
 
     def port_warning(self):
         """Creates a QMessagebox warning when no serial port selected."""
