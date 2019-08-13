@@ -98,7 +98,7 @@ class UartPower(QWizardPage):
 
     def rx_psoc(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "([0-9)+.([0-9])+.([0-9])+"
+        pattern = r"([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
         if (version):
             self.uart_pbar.setRange(0, 1)
@@ -117,6 +117,7 @@ class UartPower(QWizardPage):
             "Hall Effect Sensor Test: PASS")
         self.tu.hall_effect_status.setStyleSheet(
             self.d505.status_style_pass)
+        self.report.write_data("hall_effect", "", "PASS")
         self.hall_effect_btn_pass.setEnabled(False)
         self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(True)
@@ -126,6 +127,7 @@ class UartPower(QWizardPage):
             "Hall Effect Sensor Test: FAIL")
         self.tu.hall_effect_status.setStyleSheet(
             self.d505.status_style_fail)
+        self.report.write_data("hall_effect", "", "FAIL")
         self.hall_effect_btn_pass.setEnabled(False)
         self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(True)

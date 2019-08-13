@@ -97,6 +97,8 @@ class OneWireMaster(QWizardPage):
             self.tu.one_wire_prog_status.setStyleSheet(self.d505.status_style_pass)
             self.one_wire_pbar.setRange(0, 1)
             self.one_wire_pbar.setValue(1)
+            self.report.write_data("onewire_ver", self.one_wire_master_ver,
+                                   "PASS")
             self.is_complete = True
             self.complete_signal.emit()
 
@@ -124,7 +126,7 @@ class OneWireMaster(QWizardPage):
             return
 
         # Check for response from board before proceeding
-        pattern = "download hex records now..."
+        pattern = r"download hex records now..."
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming 1-wire master. . .")
             self.sm.data_ready.connect(self.data_parser)
@@ -139,7 +141,7 @@ class OneWireMaster(QWizardPage):
     def data_parser(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.record_version)
-        pattern = "lock bits set"
+        pattern = r"lock bits set"
         if (re.search(pattern, data)):
             self.one_wire_lbl.setText("Programming complete.")
             self.one_wire_test_signal.emit()

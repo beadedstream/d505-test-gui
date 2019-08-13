@@ -128,6 +128,21 @@ class CypressBLE(QWizardPage):
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
+        self.sm.port_unavailable_signal.disconnect()
+        self.sm.port_unavailable_signal.connect(self.port_warning)
+        self.sm.no_port_sel.disconnect()
+        self.sm.no_port_sel.connect(self.port_warning)
+
+    def port_warning(self):
+        """Creates a QMessagebox warning when no serial port selected."""
+        QMessageBox.warning(self, "Warning!", "No serial port selected!")
+        self.leds_lbl.setStyleSheet("QLabel {color: black}")
+        self.leds_btn_pass.setEnabled(True)
+        self.leds_btn_fail.setEnabled(True)
+        self.psoc_pbar_lbl.setText("PSoC version")
+        self.psoc_pbar.setRange(0, 1)
+        self.psoc_pbar.setValue(0)
+
     def ble_pass(self):
         self.tu.ble_prog_status.setText("BLE Programming: PASS")
         self.tu.ble_prog_status.setStyleSheet(
@@ -190,7 +205,7 @@ class CypressBLE(QWizardPage):
 
     def parse_data(self, data):
         self.sm.data_ready.disconnect()
-        pattern = "([0-9)+.([0-9])+.([0-9])+"
+        pattern = r"([0-9)+.([0-9])+.([0-9])+"
         version = re.search(pattern, data)
         if (version):
             self.report.write_data("ble_ver", version.group(), "PASS")

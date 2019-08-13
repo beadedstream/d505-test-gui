@@ -15,7 +15,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "1.0.1"
+VERSION_NUM = "1.1"
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 800
@@ -167,7 +167,7 @@ class TestUtility(QMainWindow):
         self.start_btn.setAutoDefault(True)
         self.start_btn.clicked.connect(self.parse_values)
 
-        self.logo_img = QPixmap(self.resource_path("../h_logo.png"))
+        self.logo_img = QPixmap(self.resource_path("h_logo.png"))
         self.logo_img = self.logo_img.scaledToWidth(600)
         self.logo = QLabel()
         self.logo.setPixmap(self.logo_img)
@@ -329,7 +329,7 @@ class TestUtility(QMainWindow):
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
-        self.one_wire_prog_status = QLabel("1-Wire Master Programming:_____")
+        self.one_wire_prog_status = QLabel("1-Wire Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")

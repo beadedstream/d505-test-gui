@@ -226,7 +226,7 @@ class Program(QWizardPage):
 
         QMessageBox.warning(self, "Warning!", "File not found! Check "
                             "configuration settings for correct file "
-                            "locations.")
+                            "locations and make sure file names are correct.")
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
         self.initializePage()
@@ -321,7 +321,6 @@ class Program(QWizardPage):
         self.tu.xmega_prog_status.setStyleSheet(self.d505.status_style_pass)
         self.tu.xmega_prog_status.setText("XMega Programming: PASS")
         self.flash_thread.quit()
-        self.flash_thread.wait()
 
     def start_uart_tests(self):
         self.sm.data_ready.connect(self.watchdog_handler)

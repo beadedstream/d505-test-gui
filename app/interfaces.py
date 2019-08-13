@@ -121,7 +121,7 @@ class XmegaInterfaces(QWizardPage):
     def verify_batv(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_modem)
-        pattern = "([0-9])+.([0-9])+"
+        pattern = r"([0-9])+.([0-9])+"
         if (re.search(pattern, data)):
             bat_v = float(re.search(pattern, data).group())
             value_pass = self.model.compare_to_limit("bat_v", bat_v)
@@ -144,7 +144,7 @@ class XmegaInterfaces(QWizardPage):
     def verify_modem(self, data):
         self.sm.data_ready.disconnect()
         self.sm.data_ready.connect(self.verify_board_id)
-        pattern = "([0-9]){15}"
+        pattern = r"([0-9]){15}"
         m = re.search(pattern, data)
         if (m):
             imei = m.group()

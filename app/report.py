@@ -51,6 +51,7 @@ class Report:
             "rtc_alarm": ["RTC Alarm", None, "PASS"],
             "gps_comms": ["GPS Connected", None, None],
             "sonic_connected": ["Sonic Device Connected (cm)", None, None],
+            "hall_effect": ["Hall Effect Sensor", None, None],
             "solar_v": ["Solar Charge Voltage (V)", None, None],
             "solar_i": ["Solar Charge Current (mA)", None, None],
             "deep_sleep_i": ["Deep Sleep Current (uA)", None, None],
