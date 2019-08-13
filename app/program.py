@@ -226,7 +226,7 @@ class Program(QWizardPage):
 
         QMessageBox.warning(self, "Warning!", "File not found! Check "
                             "configuration settings for correct file "
-                            "locations.")
+                            "locations and make sure file names are correct.")
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.batch_pbar_lbl.setText("Flash Xmega")
         self.initializePage()
