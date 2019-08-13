@@ -1,6 +1,6 @@
 import os
 import re
-import d505
+import wizard
 import serialmanager
 import model
 import report
@@ -15,7 +15,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "1.0.1"
+VERSION_NUM = "1.1"
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 800
@@ -76,8 +76,8 @@ class TestUtility(QMainWindow):
 
         # Part number : [serial prefix, procedure class]
         self.product_data = {
-            "45321-03": ["D505", d505.D505],
-            "45321-02": ["D505", d505.D505]
+            "45321-03": ["D505", wizard.D505],
+            "45321-02": ["D505", wizard.D505]
         }
 
         # Create program actions.
@@ -329,7 +329,7 @@ class TestUtility(QMainWindow):
         self.supply_5v_status = QLabel("5V Supply: _____V")
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
-        self.one_wire_prog_status = QLabel("1-Wire Master Programming:_____")
+        self.one_wire_prog_status = QLabel("1-Wire Programming:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
@@ -375,9 +375,9 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.one_wire_prog_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
+        status_vbox1.addWidget(self.led_test_status)
         status_vbox1.addWidget(self.xmega_inter_status)
         status_vbox1.addWidget(self.hall_effect_status)
-        status_vbox1.addWidget(self.led_test_status)
         status_vbox1.addWidget(self.solar_charge_v_status)
         status_vbox1.addWidget(self.solar_charge_i_status)
         status_vbox1.addWidget(self.deep_sleep_i_status)

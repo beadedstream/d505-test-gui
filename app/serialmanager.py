@@ -1,3 +1,4 @@
+import re
 import time
 import serial
 import serial.tools.list_ports
@@ -19,10 +20,15 @@ class SerialManager(QObject):
     rtc_test_succeeded = pyqtSignal()
     rtc_test_failed = pyqtSignal()
     port_unavailable_signal = pyqtSignal()
+    version_signal = pyqtSignal(str)
+    no_version = pyqtSignal()
+    serial_error_signal = pyqtSignal()
+    file_not_found_signal = pyqtSignal(str)
+    generic_error_signal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
-        self.ser = serial.Serial(None, 115200, timeout=45,
+        self.ser = serial.Serial(None, 115200, timeout=60,
                                  parity=serial.PARITY_NONE, rtscts=False,
                                  xonxoff=False, dsrdtr=False)
         self.end = b"\r\n>"
@@ -48,8 +54,38 @@ class SerialManager(QObject):
             self.no_port_sel.emit()
 
     @pyqtSlot()
+    def version_check(self):
+        command = "version"
+        p = r"[0-9]+\.[0-9]+[a-z]"
+        if self.ser.is_open:
+            try:
+                self.flush_buffers()
+                self.ser.write((command + "\r\n").encode())
+
+                try:
+                    response = self.ser.read_until(self.end).decode()
+                except UnicodeDecodeError:
+                    self.serial_error_signal.emit()
+                    return
+
+                # Ensure version matches format, otherwise emit error signal.
+                if re.search(p, response):
+                    self.version_signal.emit(re.search(p, response).group())
+                    return
+                else:
+                    self.no_version.emit()
+                    return
+
+            except serial.serialutil.SerialException:
+                self.port_unavailable_signal.emit()
+            except Exception as e:
+                self.generic_error_signal.emit(str(e))
+        else:
+            self.no_port_sel.emit()
+
+    @pyqtSlot()
     def one_wire_test(self):
-        """Sends command for one wire test and evaluates the result."""
+        """Sends command for one wire test."""
         if self.ser.is_open:
             try:
                 self.flush_buffers()
@@ -72,7 +108,7 @@ class SerialManager(QObject):
         if self.ser.is_open:
             try:
                 self.ser.write("reprogram-1-wire-master\r\n".encode())
-                # Wait for serial buffer to fill
+                # Wait for serial buffer to fill, reduce this time if possible
                 time.sleep(5)
                 num_bytes = self.ser.in_waiting
                 data = self.ser.read(num_bytes).decode()
