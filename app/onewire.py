@@ -97,6 +97,8 @@ class OneWireMaster(QWizardPage):
             self.tu.one_wire_prog_status.setStyleSheet(self.d505.status_style_pass)
             self.one_wire_pbar.setRange(0, 1)
             self.one_wire_pbar.setValue(1)
+            self.report.write_data("onewire_ver", self.one_wire_master_ver,
+                                   "PASS")
             self.is_complete = True
             self.complete_signal.emit()
 
