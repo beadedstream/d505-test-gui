@@ -83,7 +83,12 @@ class OneWireMaster(QWizardPage):
         if m:
             board_version = m.group()
         else:
-            QMessageBox.warning(self, "Error!", "Bad version data!")
+            # If no version data present, start programming hex file.
+            # This catches edge cases where there's version data present but the
+            # serial data is corrupted so doesn't match the regex pattern. These
+            # should be rare enough not to be an issue.
+            self.sm.data_ready.connect(self.send_hex_file)
+            self.start_programming()
             return
 
         if utilities.newer_file_version(self.one_wire_master_ver,
