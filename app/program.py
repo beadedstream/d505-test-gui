@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QLineEdit, QProgressBar, QPushButton, QMessageBox, QHBoxLayout,
     QApplication)
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSignal, QThread
 from packaging.version import LegacyVersion
 
 
@@ -55,7 +55,7 @@ class Program(QWizardPage):
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
         self.board_version_check.connect(self.sm.version_check)
-        
+
         self.sm.version_signal.connect(self.compare_version)
         self.sm.no_version.connect(self.no_version)
         self.sm.line_written.connect(self.update_pbar)
@@ -65,7 +65,7 @@ class Program(QWizardPage):
         self.sm.port_unavailable_signal.disconnect()
         self.sm.port_unavailable_signal.connect(self.port_warning)
         self.sm.serial_error_signal.connect(self.serial_error)
-        
+
         self.system_font = QApplication.font().family()
         self.label_font = QFont(self.system_font, 12)
 
@@ -103,7 +103,7 @@ class Program(QWizardPage):
                                                    height: 20px}")
         self.xmega_disconnect_chkbx.clicked.connect(
             lambda: utilities.checked(self.xmega_disconnect_lbl,
-                                          self.xmega_disconnect_chkbx))
+                                      self.xmega_disconnect_chkbx))
         self.xmega_disconnect_chkbx.clicked.connect(self.start_uart_tests)
 
         self.watchdog_pbar_lbl = QLabel("Resetting watchdog...")
@@ -211,7 +211,7 @@ class Program(QWizardPage):
     def serial_error(self):
         QMessageBox.warning(self, "Warning!", "Serial error!")
         self.initializePage()
-    
+
     def process_error(self):
         """Creates a QMessagebox warning for an AVR programming error."""
 
@@ -236,7 +236,7 @@ class Program(QWizardPage):
 
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
         utilities.unchecked(self.xmega_disconnect_lbl,
-                       self.xmega_disconnect_chkbx)
+                            self.xmega_disconnect_chkbx)
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)
         self.watchdog_pbar.setRange(0, 1)
 
@@ -267,21 +267,21 @@ class Program(QWizardPage):
         self.board_version_check.emit()
 
     def compare_version(self, version: str):
-        """Compare main app file version and board version using 
+        """Compare main app file version and board version using
         packaging.version LegacyVersion and flash the board with the file if
         the file version is higher than the board version."""
         if LegacyVersion(self.main_app_file_version) > LegacyVersion(version):
             self.start_flash()
         else:
             self.batch_pbar_lbl.setText("File version is not newer "
-                                "than board version; skipping...")
+                                        "than board version; skipping...")
             self.tu.xmega_prog_status.setStyleSheet(
                 self.d505.status_style_pass)
             self.tu.xmega_prog_status.setText("XMega Programming: PASS")
             self.batch_pbar.setRange(0, 1)
             self.batch_pbar.setValue(1)
             self.xmega_disconnect_chkbx.setEnabled(True)
-    
+
     def no_version(self):
         self.start_flash()
 
@@ -291,9 +291,10 @@ class Program(QWizardPage):
 
     def start_flash(self):
         """Starts flash test by emitting command."""
+        self.flash_signal.disconnect()
 
         self.batch_pbar_lbl.setText("Erasing flash...")
- 
+
         self.batch_pbar.setRange(0, 6)
         self.flash_signal.emit()
 
@@ -306,7 +307,7 @@ class Program(QWizardPage):
 
     def flash_failed(self, cmd_text):
         """Handles case where flash programming failed."""
-
+        self.flash_signal.connect(self.flash.flash)
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)
@@ -345,7 +346,7 @@ class Program(QWizardPage):
             self.watchdog_pbar.setRange(0, 1)
             self.watchdog_pbar.setValue(0)
             utilities.unchecked(self.xmega_disconnect_lbl,
-                           self.xmega_disconnect_chkbx)
+                                self.xmega_disconnect_chkbx)
             return
         bootloader_version = bootloader_version.strip("\r\n")
         app_version = app_version.strip("\r\n")
