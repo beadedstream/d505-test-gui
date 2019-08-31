@@ -211,7 +211,7 @@ class Program(QWizardPage):
     def serial_error(self):
         QMessageBox.warning(self, "Warning!", "Serial error!")
         self.initializePage()
-    
+
     def process_error(self):
         """Creates a QMessagebox warning for an AVR programming error."""
 
@@ -267,21 +267,21 @@ class Program(QWizardPage):
         self.board_version_check.emit()
 
     def compare_version(self, version: str):
-        """Compare main app file version and board version using 
+        """Compare main app file version and board version using
         packaging.version LegacyVersion and flash the board with the file if
         the file version is higher than the board version."""
         if LegacyVersion(self.main_app_file_version) > LegacyVersion(version):
             self.start_flash()
         else:
             self.batch_pbar_lbl.setText("File version is not newer "
-                                "than board version; skipping...")
+                                        "than board version; skipping...")
             self.tu.xmega_prog_status.setStyleSheet(
                 self.d505.status_style_pass)
             self.tu.xmega_prog_status.setText("XMega Programming: PASS")
             self.batch_pbar.setRange(0, 1)
             self.batch_pbar.setValue(1)
             self.xmega_disconnect_chkbx.setEnabled(True)
-    
+
     def no_version(self):
         self.start_flash()
 
@@ -291,9 +291,10 @@ class Program(QWizardPage):
 
     def start_flash(self):
         """Starts flash test by emitting command."""
+        self.flash_signal.disconnect()
 
         self.batch_pbar_lbl.setText("Erasing flash...")
- 
+
         self.batch_pbar.setRange(0, 6)
         self.flash_signal.emit()
 
@@ -306,7 +307,7 @@ class Program(QWizardPage):
 
     def flash_failed(self, cmd_text):
         """Handles case where flash programming failed."""
-
+        self.flash_signal.connect(self.flash.flash)
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)
