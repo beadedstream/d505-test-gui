@@ -8,14 +8,13 @@ import sys
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QPushButton, QVBoxLayout, QApplication, QLabel,
     QLineEdit, QComboBox, QGridLayout, QGroupBox, QHBoxLayout,
-    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu,
-    QDesktopWidget
+    QMessageBox, QAction, QActionGroup, QFileDialog, QDialog, QMenu
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "1.1.1"
+VERSION_NUM = "1.1.2"
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 800
@@ -32,8 +31,7 @@ class InvalidMsgType(Exception):
 
 class TestUtility(QMainWindow):
     """Main class for the PCBA Test Utility.
-    
-    Creates main window for the program, the file menu, status bar, and the 
+    Creates main window for the program, the file menu, status bar, and the
     settings/configuration window.
     """
     def __init__(self):
@@ -131,12 +129,12 @@ class TestUtility(QMainWindow):
         centerPoint = QApplication.desktop().screenGeometry(screen).center()
         frameGm.moveCenter(centerPoint)
         self.move(frameGm.topLeft())
-        
+
     def resource_path(self, relative_path):
         """Gets the path of the application relative root path to allow us
         to find the logo."""
         if hasattr(sys, '_MEIPASS'):
-             return os.path.join(sys._MEIPASS, relative_path)
+            return os.path.join(sys._MEIPASS, relative_path)
         return os.path.join(os.path.abspath("."), relative_path)
 
     def initUI(self):
@@ -309,7 +307,7 @@ class TestUtility(QMainWindow):
 
     def start_procedure(self):
         """Sets up procedure layout by creating test statuses and initializing
-        the appropriate board class (currently D505, potentially others in 
+        the appropriate board class (currently D505, potentially others in
         the future)."""
         central_widget = QWidget()
 
