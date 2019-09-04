@@ -293,7 +293,7 @@ class Program(QWizardPage):
         """Starts flash test by emitting command."""
 
         self.batch_pbar_lbl.setText("Erasing flash...")
- 
+
         self.batch_pbar.setRange(0, 6)
         self.flash_signal.emit()
 
@@ -325,6 +325,9 @@ class Program(QWizardPage):
     def start_uart_tests(self):
         self.sm.data_ready.connect(self.watchdog_handler)
         self.watchdog_pbar.setRange(0, 0)
+
+        # Reset serial timeout for watchdog command
+        self.sm.ser.timeout = 60
         self.command_signal.emit("watchdog")
 
     def watchdog_handler(self, data):

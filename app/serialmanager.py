@@ -89,9 +89,6 @@ class SerialManager(QObject):
         else:
             self.no_port_sel.emit()
 
-        # Reset timeout back.
-        self.ser.timeout = 60
-
     @pyqtSlot()
     def one_wire_test(self):
         """Sends command for one wire test."""
