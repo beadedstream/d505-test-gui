@@ -57,13 +57,19 @@ class SerialManager(QObject):
     def version_check(self):
         command = "version"
         p = r"[0-9]+\.[0-9]+[a-z]"
+
+        # Set short timeout in case board is unprogrammed and stalls on no response
+        self.ser.timeout = 3
+
         if self.ser.is_open:
             try:
                 self.flush_buffers()
                 self.ser.write((command + "\r\n").encode())
 
                 try:
-                    response = self.ser.read_until(self.end).decode()
+                    time.sleep(1)
+                    # response = self.ser.read_until(self.end).decode()
+                    response = self.ser.read(self.ser.in_waiting).decode()
                 except UnicodeDecodeError:
                     self.serial_error_signal.emit()
                     return

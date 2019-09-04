@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Inno Setup Output
+Output/
+
 # Distribution / packaging
 .Python
 build/
