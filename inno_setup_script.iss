@@ -22,7 +22,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename=pcba_test_utility_setup_v{#MyAppVersion}
-SetupIconFile=C:\Users\samuel\beadedstream-test-utility-gui\icon.ico
+SetupIconFile=C:\_Trabajo\BeadedStream\_Git\icon.ico
 Compression=lzma
 SolidCompression=yes
 
@@ -33,8 +33,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\samuel\beadedstream-test-utility-gui\app\dist\pcba_test_utility\pcba_test_utility.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\samuel\beadedstream-test-utility-gui\app\dist\pcba_test_utility\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\_Trabajo\BeadedStream\_Git\app\dist\pcba_test_utility\pcba_test_utility.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\_Trabajo\BeadedStream\_Git\app\dist\pcba_test_utility\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

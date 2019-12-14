@@ -57,6 +57,13 @@ class Setup(QWizardPage):
         self.step_d_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.step_d_unit = QLabel("V")
 
+        self.step_e_lbl = QLabel("Record Coin Cell Voltage:", self)
+        self.step_e_lbl.setFont(self.label_font)
+        self.step_e_input = QLineEdit()
+        self.step_e_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.step_e_unit = QLabel("V")
+
+
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.parse_values)
         self.submit_button.setFixedWidth(LINE_EDIT_WIDTH)
@@ -87,7 +94,7 @@ class Setup(QWizardPage):
         self.step_c_layout.addStretch()
         self.step_c_layout.addWidget(self.step_c_input)
         self.step_c_layout.addWidget(self.step_c_unit)
-        self.step_c_layout.addSpacing(RIGHT_SPACING - 18)
+        self.step_c_layout.addSpacing(RIGHT_SPACING - 24)
 
         self.step_d_layout = QHBoxLayout()
         self.step_d_layout.addSpacing(LEFT_SPACING)
@@ -96,6 +103,14 @@ class Setup(QWizardPage):
         self.step_d_layout.addWidget(self.step_d_input)
         self.step_d_layout.addWidget(self.step_d_unit)
         self.step_d_layout.addSpacing(RIGHT_SPACING - 8)
+
+        self.step_e_layout = QHBoxLayout()
+        self.step_e_layout.addSpacing(LEFT_SPACING)
+        self.step_e_layout.addWidget(self.step_e_lbl)
+        self.step_e_layout.addStretch()
+        self.step_e_layout.addWidget(self.step_e_input)
+        self.step_e_layout.addWidget(self.step_e_unit)
+        self.step_e_layout.addSpacing(RIGHT_SPACING - 8)
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
@@ -106,6 +121,8 @@ class Setup(QWizardPage):
         self.layout.addLayout(self.step_c_layout)
         self.layout.addSpacing(VERT_SPACING)
         self.layout.addLayout(self.step_d_layout)
+        self.layout.addSpacing(VERT_SPACING)
+        self.layout.addLayout(self.step_e_layout)
         self.layout.addSpacing(VERT_SPACING)
         self.layout.addLayout(self.btn_layout)
         self.layout.addStretch()
@@ -122,12 +139,13 @@ class Setup(QWizardPage):
     def parse_values(self):
         """Parse the input values and check their validity."""
 
-        limits = ["input_v", "input_i", "supply_2v"]
+        limits = ["input_v", "input_i", "supply_2v", "coin_cell_v"]
         values = []
         try:
             values.append(float(self.step_b_input.text()))
             values.append(float(self.step_c_input.text()))
             values.append(float(self.step_d_input.text()))
+            values.append(float(self.step_e_input.text()))
         except ValueError:
             QMessageBox.warning(self, "Warning", "Bad input value!")
             return
@@ -141,25 +159,40 @@ class Setup(QWizardPage):
         self.tu.input_v_status.setText(f"Input Voltage: {values[0]} V")
         self.tu.input_i_status.setText(f"Input Current: {values[1]} mA")
         self.tu.supply_2v_status.setText(f"2V Supply: {values[2]} V")
+        self.tu.coin_cell_v_status.setText(f"Coin Cell: {values[3]} V")
 
+        #
         if (self.model.compare_to_limit(limits[0], values[0])):
             self.tu.input_v_status.setStyleSheet(
                 self.d505.status_style_pass)
         else:
             self.tu.input_v_status.setStyleSheet(
                 self.d505.status_style_fail)
+
+        #
         if (self.model.compare_to_limit(limits[1], values[1])):
             self.tu.input_i_status.setStyleSheet(
                 self.d505.status_style_pass)
         else:
             self.tu.input_i_status.setStyleSheet(
                 self.d505.status_style_fail)
+
+        #
         if (self.model.compare_to_limit(limits[2], values[2])):
             self.tu.supply_2v_status.setStyleSheet(
                 self.d505.status_style_pass)
         else:
             self.tu.supply_2v_status.setStyleSheet(
                 self.d505.status_style_fail)
+
+        #
+        if (self.model.compare_to_limit(limits[3], values[3])):
+            self.tu.coin_cell_v_status.setStyleSheet(
+                self.d505.status_style_pass)
+        else:
+            self.tu.coin_cell_v_status.setStyleSheet(
+                self.d505.status_style_fail)
+
         self.is_complete = True
         self.complete_signal.emit()
 

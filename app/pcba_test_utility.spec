@@ -1,12 +1,12 @@
-# -*- mode: python -*-
+# -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
 
 a = Analysis(['pcba_test_utility.py'],
-             pathex=['C:\\Users\\samuel\\beadedstream-test-utility-gui\\app'],
+             pathex=['C:\\_Trabajo\\BeadedStream\\_Git\\app'],
              binaries=[],
-             datas=[('..\h_logo.png', '.')],
+             datas=[],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -26,11 +26,12 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False, icon='../icon.ico')
+          console=True )
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
                strip=False,
                upx=True,
+               upx_exclude=[],
                name='pcba_test_utility')

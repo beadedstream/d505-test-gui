@@ -33,6 +33,7 @@ class Report:
             "input_v": ["Input Voltage (V)", None, None],
             "input_i": ["Input Current (mA)", None, None],
             "supply_2v": ["2V Supply (V)", None, None],
+            "coin_cell_v": ["Coin Cell Voltage (V)", None, None],
             "supply_5v": ["5V Supply (V)", None, None],
             "uart_5v": ["UART 5V (V)", None, None],
             "off_5v": ["5V Off (V)", None, None],

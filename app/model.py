@@ -31,6 +31,7 @@ class Model:
             "i_input_max": 80.0,
             "2v_min": 1.90,
             "2v_max": 2.10,
+            "coin_v_min": 1.20,
             "5v_min": 4.85,
             "5v_max": 5.15,
             "5v_uart_tolerance": 0.03,
@@ -70,6 +71,9 @@ class Model:
         elif limit == "supply_2v":
             return (value >= self.limits["2v_min"] and
                     value <= self.limits["2v_max"])
+
+        elif limit == "coin_cell_v":
+            return value >= self.limits["coin_v_min"]
 
         elif limit == "supply_5v":
             self.internal_5v = value
