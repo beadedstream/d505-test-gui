@@ -51,13 +51,13 @@ class Setup(QWizardPage):
         self.step_c_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.step_c_unit = QLabel("mA")
 
-        self.step_d_lbl = QLabel("Record 2V supply (right side of C49):", self)
+        self.step_d_lbl = QLabel("Record Coin Cell Voltage:", self)
         self.step_d_lbl.setFont(self.label_font)
         self.step_d_input = QLineEdit()
         self.step_d_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.step_d_unit = QLabel("V")
 
-        self.step_e_lbl = QLabel("Record Coin Cell Voltage:", self)
+        self.step_e_lbl = QLabel("Record 2V supply (right side of C49):", self)
         self.step_e_lbl.setFont(self.label_font)
         self.step_e_input = QLineEdit()
         self.step_e_input.setFixedWidth(LINE_EDIT_WIDTH)
@@ -139,7 +139,7 @@ class Setup(QWizardPage):
     def parse_values(self):
         """Parse the input values and check their validity."""
 
-        limits = ["input_v", "input_i", "supply_2v", "coin_cell_v"]
+        limits = ["input_v", "input_i", "coin_cell_v", "supply_2v"]
         values = []
         try:
             values.append(float(self.step_b_input.text()))
@@ -158,8 +158,8 @@ class Setup(QWizardPage):
         # Update status values
         self.tu.input_v_status.setText(f"Input Voltage: {values[0]} V")
         self.tu.input_i_status.setText(f"Input Current: {values[1]} mA")
-        self.tu.supply_2v_status.setText(f"2V Supply: {values[2]} V")
-        self.tu.coin_cell_v_status.setText(f"Coin Cell: {values[3]} V")
+        self.tu.coin_cell_v_status.setText(f"Coin Cell Voltage: {values[2]} V")
+        self.tu.supply_2v_status.setText(f"2V Supply: {values[3]} V")
 
         #
         if (self.model.compare_to_limit(limits[0], values[0])):
@@ -179,19 +179,20 @@ class Setup(QWizardPage):
 
         #
         if (self.model.compare_to_limit(limits[2], values[2])):
+            self.tu.coin_cell_v_status.setStyleSheet(
+                self.d505.status_style_pass)
+        else:
+            self.tu.coin_cell_v_status.setStyleSheet(
+                self.d505.status_style_fail)
+
+        #
+        if (self.model.compare_to_limit(limits[3], values[3])):
             self.tu.supply_2v_status.setStyleSheet(
                 self.d505.status_style_pass)
         else:
             self.tu.supply_2v_status.setStyleSheet(
                 self.d505.status_style_fail)
 
-        #
-        if (self.model.compare_to_limit(limits[3], values[3])):
-            self.tu.coin_cell_v_status.setStyleSheet(
-                self.d505.status_style_pass)
-        else:
-            self.tu.coin_cell_v_status.setStyleSheet(
-                self.d505.status_style_fail)
 
         self.is_complete = True
         self.complete_signal.emit()
