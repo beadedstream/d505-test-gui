@@ -154,6 +154,7 @@ class TestUtility(QMainWindow):
         self.pcba_sn_input = QLineEdit()
         self.tester_id_input.setFixedWidth(LINE_EDIT_WIDTH)
         self.pcba_sn_input.setFixedWidth(LINE_EDIT_WIDTH)
+        self.pcba_sn_input.setText("D5050")
 
         self.pcba_pn_input = QComboBox()
         self.pcba_pn_input.addItem("45321-03")
