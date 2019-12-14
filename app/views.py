@@ -17,7 +17,7 @@ from PyQt5.QtCore import QSettings, Qt, QThread
 VERSION_NUM = "1.1.3"
 
 WINDOW_WIDTH = 1400
-WINDOW_HEIGHT = 800
+WINDOW_HEIGHT = 900
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2019.
