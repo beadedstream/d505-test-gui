@@ -118,7 +118,6 @@ class FlashD505(QObject):
         """Loops through all the commands to flash the D505 board."""
         if not self.flash_flag:
             for cmd_text, cmd in self.commands.items():
-                print(cmd)
                 try:
                     status = subprocess.check_output(cmd,
                                                      startupinfo=self.si).decode()
