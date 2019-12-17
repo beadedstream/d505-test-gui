@@ -185,7 +185,6 @@ class Program(QWizardPage):
         self.command_signal.connect(self.sm.send_command)
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
-        self.flash_signal.connect(self.flash.flash)
 
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.d505.button(QWizard.NextButton).setAutoDefault(False)
@@ -291,7 +290,7 @@ class Program(QWizardPage):
 
     def start_flash(self):
         """Starts flash test by emitting command."""
-        self.flash_signal.disconnect()
+        #self.flash_signal.disconnect()
 
         self.batch_pbar_lbl.setText("Erasing flash...")
 
@@ -307,7 +306,6 @@ class Program(QWizardPage):
 
     def flash_failed(self, cmd_text):
         """Handles case where flash programming failed."""
-        self.flash_signal.connect(self.flash.flash)
         QMessageBox.warning(self, "Flashing D505",
                             f"Command {cmd_text} failed!")
         utilities.unchecked(self.batch_lbl, self.batch_chkbx)

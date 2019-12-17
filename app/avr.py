@@ -17,6 +17,7 @@ class FlashD505(QObject):
     def __init__(self):
         # , atprogram_path: str, hex_files_path: Path, main_file: str):
         super().__init__()
+        self.flash_flag = False
 
         # Hide console window
         self.si = subprocess.STARTUPINFO()
@@ -115,28 +116,30 @@ class FlashD505(QObject):
     @pyqtSlot()
     def flash(self):
         """Loops through all the commands to flash the D505 board."""
+        if not self.flash_flag:
+            for cmd_text, cmd in self.commands.items():
+                print(cmd)
+                try:
+                    status = subprocess.check_output(cmd,
+                                                     startupinfo=self.si).decode()
 
-        for cmd_text, cmd in self.commands.items():
-            try:
-                status = subprocess.check_output(cmd,
-                                                 startupinfo=self.si).decode()
+                    if "Firmware check OK" in status:
+                        self.command_succeeded.emit(cmd_text)
+                    else:
+                        self.command_failed.emit(cmd_text)
+                        break
 
-                if "Firmware check OK" in status:
-                    self.command_succeeded.emit(cmd_text)
-                else:
+                except ValueError:
                     self.command_failed.emit(cmd_text)
-                    break
-
-            except ValueError:
-                self.command_failed.emit(cmd_text)
-                return
-            except subprocess.CalledProcessError:
-                self.process_error_signal.emit()
-                return
-            except FileNotFoundError:
-                self.file_not_found_signal.emit(cmd[10])
-                return
-            except Exception as e:
-                self.generic_error_signal.emit(e)
-                return
+                    return
+                except subprocess.CalledProcessError:
+                    self.process_error_signal.emit()
+                    return
+                except FileNotFoundError:
+                    self.file_not_found_signal.emit(cmd[10])
+                    return
+                except Exception as e:
+                    self.generic_error_signal.emit(e)
+                    return
+            self.flash_flag = True
         self.flash_finished.emit()
