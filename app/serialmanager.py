@@ -42,18 +42,19 @@ class SerialManager(QObject):
         """Checks connection to the serial port and sends a command."""
         if self.ser.is_open:
             try:
-                then = time.time()
-                print(command)
+                # Debug items pt.1
+                #then = time.time()
+                #print(command)
                 self.flush_buffers()
 
                 command = (command + "\r\n").encode()
                 self.ser.write(command)
                 data = self.ser.read_until(self.end).decode()
 
-                now = time.time()
-                print(now - then)
-
-                print(data)
+                # Debug items pt.2
+                #now = time.time()
+                #print(now - then)
+                #print(data)
 
                 self.data_ready.emit(data)
             except serial.serialutil.SerialException:
