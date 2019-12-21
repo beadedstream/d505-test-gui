@@ -29,7 +29,7 @@ class XmegaInterfaces(QWizardPage):
         self.report = report
 
         self.complete_signal.connect(self.completeChanged)
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.imei_signal.connect(self.sm.iridium_command)
         self.flash_test_signal.connect(self.sm.flash_test)
         self.gps_test_signal.connect(self.sm.gps_test)
@@ -104,14 +104,12 @@ class XmegaInterfaces(QWizardPage):
         self.serial_test_signal.emit(self.tu.pcba_sn)
 
     def serial_pass(self, serial_num):
-        self.report.write_data("serial_match", serial_num, "PASS")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Verifying battery voltage. . .")
         self.command_signal.emit("bat_v")
 
     def serial_fail(self, data):
-        self.report.write_data("serial_match", data, "FAIL")
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.page_fail()
@@ -188,32 +186,57 @@ class XmegaInterfaces(QWizardPage):
 
     def verify_tac(self, data):
         data = data.split("\n")
+        tac_id = ['T1','T2','T3','T4']
+        port_tac = ['port1_tac_id','port2_tac_id','port3_tac_id','port4_tac_id']
+        port = [None] * 4
 
-        try:
-            port1 = data[2][0:8]
-            port2 = data[7][0:8]
-            port3 = data[12][0:8]
-            port4 = data[17][0:8]
+        for i in range(4):
+            for d_idx in range(len(data)):
+                if tac_id[i] == data[d_idx][0:2]:
+                    try:
+                        print(data[d_idx + 1][0:8])
+                        if not data[d_idx + 1][0:8] == self.tu.settings.value(port_tac[i]):
+                            raise IndexError
+                        else:
+                            port[i] = data[d_idx + 1][0:8]
 
-            if not (port1 == self.tu.settings.value("port1_tac_id") and
-                    port2 == self.tu.settings.value("port2_tac_id") and
-                    port3 == self.tu.settings.value("port3_tac_id") and
-                    port4 == self.tu.settings.value("port4_tac_id")):
-                self.report.write_data("tac_connected", "", "FAIL")
-                self.page_fail()
-            else:
-                self.report.write_data("tac_connected", "", "PASS")
+                    except IndexError:
+                        QMessageBox.warning(self, "TAC Connection",
+                                            "Serial error or bad value")
+                        self.page_fail()
 
-        except IndexError:
-            QMessageBox.warning(self, "TAC Connection",
-                                "Serial error or bad value")
-            self.report.write_data("tac_connected", "", "FAIL")
-            self.page_fail()
 
+        self.write_tac(port)
         self.xmega_pbar_counter += 1
         self.xmega_pbar.setValue(self.xmega_pbar_counter)
         self.xmega_lbl.setText("Checking flash. . .")
         self.flash_test_signal.emit()
+
+    def write_tac(self, p):
+        if not p[0] == self.tu.settings.value("port1_tac_id"):
+            self.report.write_data("tac_connected_1", "", "FAIL")
+            self.page_fail()
+        else:
+            self.report.write_data("tac_connected_1", "", "PASS")
+
+        if not p[1] == self.tu.settings.value("port2_tac_id"):
+            self.report.write_data("tac_connected_2", "", "FAIL")
+            self.page_fail()
+        else:
+            self.report.write_data("tac_connected_2", "", "PASS")
+
+        if not p[2] == self.tu.settings.value("port3_tac_id"):
+            self.report.write_data("tac_connected_3", "", "FAIL")
+            self.page_fail()
+        else:
+            self.report.write_data("tac_connected_3", "", "PASS")
+
+        if not p[3] == self.tu.settings.value("port4_tac_id"):
+            self.report.write_data("tac_connected_4", "", "FAIL")
+            self.page_fail()
+        else:
+            self.report.write_data("tac_connected_4", "", "PASS")
+
 
     def flash_pass(self):
         self.sm.data_ready.disconnect()

@@ -142,7 +142,7 @@ class DeepSleep(QWizardPage):
 
     def initializePage(self):
         self.is_complete = False
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.complete_signal.connect(self.completeChanged)
         self.sm.data_ready.connect(self.command_finished)
         self.d505.button(QWizard.NextButton).setEnabled(False)

@@ -51,7 +51,6 @@ class Program(QWizardPage):
         self.flash.generic_error_signal.connect(self.generic_error)
         self.flash.version_signal.connect(self.set_versions)
 
-        self.command_signal.connect(self.sm.send_command)
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
         self.board_version_check.connect(self.sm.version_check)
@@ -93,19 +92,6 @@ class Program(QWizardPage):
         self.batch_pbar_lbl.setFont(self.label_font)
         self.batch_pbar = QProgressBar()
 
-        self.xmega_disconnect_lbl = QLabel("Remove Xmega programmer from "
-                                           "connector J2.")
-        self.xmega_disconnect_lbl.setFont(self.label_font)
-        # self.xmega_disconnect_lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        self.xmega_disconnect_chkbx = QCheckBox()
-        self.xmega_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
-                                                   {width: 20px; \
-                                                   height: 20px}")
-        self.xmega_disconnect_chkbx.clicked.connect(
-            lambda: utilities.checked(self.xmega_disconnect_lbl,
-                                      self.xmega_disconnect_chkbx))
-        self.xmega_disconnect_chkbx.clicked.connect(self.start_uart_tests)
-
         self.watchdog_pbar_lbl = QLabel("Resetting watchdog...")
         self.watchdog_pbar_lbl.setFont(self.label_font)
         self.watchdog_pbar = QProgressBar()
@@ -125,6 +111,19 @@ class Program(QWizardPage):
         self.supply_5v_input_btn = QPushButton("Submit")
         self.supply_5v_input_btn.setEnabled(False)
         self.supply_5v_input_btn.clicked.connect(self.user_value_handler)
+
+        self.xmega_disconnect_lbl = QLabel("Remove Xmega programmer from "
+                                           "connector J2.")
+        self.xmega_disconnect_lbl.setFont(self.label_font)
+        # self.xmega_disconnect_lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.xmega_disconnect_chkbx = QCheckBox()
+        self.xmega_disconnect_chkbx.setStyleSheet("QCheckBox::indicator \
+                                                   {width: 20px; \
+                                                   height: 20px}")
+        self.xmega_disconnect_chkbx.clicked.connect(
+            lambda: utilities.checked(self.xmega_disconnect_lbl,
+                                      self.xmega_disconnect_chkbx))
+        
 
         self.ble_parallel_lbl = QLabel("To save time, you can start "
                                        "programming the BLE after recording "
@@ -168,13 +167,13 @@ class Program(QWizardPage):
         self.grid.addWidget(self.batch_lbl, 1, 0)
         self.grid.addWidget(self.batch_chkbx, 1, 1)
         self.grid.addLayout(self.batch_pbar_layout, 2, 0)
-        self.grid.addWidget(self.xmega_disconnect_lbl, 3, 0)
-        self.grid.addWidget(self.xmega_disconnect_chkbx, 3, 1)
-        self.grid.addLayout(self.watchdog_layout, 4, 0)
-        self.grid.addLayout(self.app0_layout, 5, 0)
-        self.grid.addLayout(self.supply_5v_layout, 6, 0)
-        self.grid.addWidget(self.ble_parallel_lbl, 7, 0)
-        self.grid.addLayout(self.supply_5v_pbar_layout, 8, 0)
+        self.grid.addLayout(self.watchdog_layout, 3, 0)
+        self.grid.addLayout(self.app0_layout, 4, 0)
+        self.grid.addLayout(self.supply_5v_layout, 5, 0)
+        self.grid.addWidget(self.ble_parallel_lbl, 6, 0)
+        self.grid.addLayout(self.supply_5v_pbar_layout, 7, 0)
+        self.grid.addWidget(self.xmega_disconnect_lbl, 8, 0)
+        self.grid.addWidget(self.xmega_disconnect_chkbx, 8, 1)
 
         self.setLayout(self.grid)
         self.setTitle("Xmega Programming and Verification")
@@ -182,7 +181,7 @@ class Program(QWizardPage):
     def initializePage(self):
         self.pbar_value = 0
 
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.sleep_signal.connect(self.sm.sleep)
         self.complete_signal.connect(self.completeChanged)
 
@@ -280,6 +279,7 @@ class Program(QWizardPage):
             self.batch_pbar.setRange(0, 1)
             self.batch_pbar.setValue(1)
             self.xmega_disconnect_chkbx.setEnabled(True)
+            self.start_uart_tests()
 
     def no_version(self):
         self.start_flash()
@@ -316,10 +316,10 @@ class Program(QWizardPage):
     def flash_finished(self):
         """Handles case where flash programming is successful."""
 
-        self.xmega_disconnect_chkbx.setEnabled(True)
         self.tu.xmega_prog_status.setStyleSheet(self.d505.status_style_pass)
         self.tu.xmega_prog_status.setText("XMega Programming: PASS")
         self.flash_thread.quit()
+        self.start_uart_tests()
 
     def start_uart_tests(self):
         self.sm.data_ready.connect(self.watchdog_handler)
@@ -396,8 +396,9 @@ class Program(QWizardPage):
         self.tu.supply_5v_status.setText(
             f"5V Supply: {supply_5v_val} V")
 
-        self.command_signal.emit("5V")
         self.supply_5v_input_btn.setEnabled(False)
+        self.xmega_disconnect_chkbx.setEnabled(True)
+        self.command_signal.emit("5V")
 
     def uart_5v_handler(self, data):
         self.sm.data_ready.disconnect()

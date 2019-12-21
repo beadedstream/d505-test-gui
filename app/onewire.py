@@ -33,16 +33,32 @@ class OneWireMaster(QWizardPage):
         self.one_wire_lbl = QLabel("Program One-Wire-Master")
         self.one_wire_lbl.setFont(self.label_font)
         self.one_wire_pbar = QProgressBar()
-        self.start_btn = QPushButton("Start programming")
-        self.start_btn.setFont(self.label_font)
-        self.start_btn.setMaximumWidth(150)
-        self.start_btn.clicked.connect(self.check_version)
+
+        self.one_wire_layout = QVBoxLayout()
+        self.one_wire_layout.addWidget(self.one_wire_lbl)
+        self.one_wire_layout.addWidget(self.one_wire_pbar)
+
+        self.g_led_lbl = QLabel("Verify green LED works.")
+        self.g_led_lbl.setFont(self.label_font)
+        self.g_led_btn_pass = QPushButton("PASS")
+        self.g_led_btn_pass.setMaximumWidth(75)
+        self.g_led_btn_fail = QPushButton("FAIL")
+        self.g_led_btn_fail.setMaximumWidth(75)
+        self.g_led_btn_pass.clicked.connect(self.g_led_pass)
+        self.g_led_btn_fail.clicked.connect(self.g_led_fail)
+
+
+        self.grid = QGridLayout()
+        self.grid.setHorizontalSpacing(25)
+        self.grid.setVerticalSpacing(50)
+        self.grid.addLayout(self.one_wire_layout, 0, 0)
+        self.grid.addWidget(self.g_led_lbl, 2, 0)
+        self.grid.addWidget(self.g_led_btn_pass, 2, 1)
+        self.grid.addWidget(self.g_led_btn_fail, 2, 2)
 
         self.layout = QVBoxLayout()
         self.layout.addStretch()
-        self.layout.addWidget(self.one_wire_lbl)
-        self.layout.addWidget(self.one_wire_pbar)
-        self.layout.addWidget(self.start_btn)
+        self.layout.addLayout(self.grid)
         self.layout.addStretch()
 
         self.setLayout(self.layout)
@@ -52,7 +68,7 @@ class OneWireMaster(QWizardPage):
         self.pbar_value = 0
         self.is_complete = False
         self.sm.line_written.disconnect()
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.file_write_signal.connect(self.sm.write_hex_file)
         self.reprogram_signal.connect(self.sm.reprogram_one_wire)
         self.one_wire_test_signal.connect(self.sm.one_wire_test)
@@ -60,6 +76,7 @@ class OneWireMaster(QWizardPage):
         self.sm.data_ready.connect(self.compare_versions)
         self.sm.line_written.connect(self.update_pbar)
         self.d505.button(QWizard.NextButton).setEnabled(False)
+        self.check_version()
 
     def check_version(self):
         self.hex_files_dir = self.tu.settings.value("hex_files_path")
@@ -70,7 +87,6 @@ class OneWireMaster(QWizardPage):
         )
 
         if self.one_wire_master_file:
-            self.start_btn.setEnabled(False)
             self.one_wire_test_signal.emit()
         else:
             QMessageBox.warning(self, "Error!",
@@ -171,3 +187,20 @@ class OneWireMaster(QWizardPage):
 
         self.is_complete = True
         self.complete_signal.emit()
+
+    def g_led_pass(self):
+        self.tu.g_led_test_status.setText("Green LED: PASS")
+        self.tu.g_led_test_status.setStyleSheet(self.d505.status_style_pass)
+        self.g_led_lbl.setStyleSheet("QLabel {color: grey}")
+        self.report.write_data("g_led_test", "", "PASS")
+        self.g_led_btn_pass.setEnabled(False)
+        self.g_led_btn_fail.setEnabled(False)
+
+    def g_led_fail(self):
+        self.tu.g_led_test_status.setText("Green LED: FAIL")
+        self.tu.g_led_test_status.setStyleSheet(self.d505.status_style_fail)
+        self.g_led_lbl.setStyleSheet("QLabel {color: grey}")
+        self.report.write_data("g_led_test", "", "FAIL")
+        self.g_led_btn_pass.setEnabled(False)
+        self.g_led_btn_fail.setEnabled(False)
+

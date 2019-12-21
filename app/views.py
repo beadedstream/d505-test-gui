@@ -16,7 +16,7 @@ from PyQt5.QtCore import QSettings, Qt, QThread
 
 VERSION_NUM = "1.1.3"
 
-WINDOW_WIDTH = 1400
+WINDOW_WIDTH = 1550
 WINDOW_HEIGHT = 900
 
 ABOUT_TEXT = f"""
@@ -27,6 +27,7 @@ ABOUT_TEXT = f"""
 
 class InvalidMsgType(Exception):
     pass
+
 
 
 class TestUtility(QMainWindow):
@@ -330,11 +331,12 @@ class TestUtility(QMainWindow):
         self.uart_5v_status = QLabel("5V UART: _____ V")
         self.uart_off_status = QLabel("5V Off: _____ V")
         self.one_wire_prog_status = QLabel("1-Wire Programming:_____")
+        self.g_led_test_status = QLabel("Green LED:_____")
         self.ble_prog_status = QLabel("BLE Programming:_____")
         self.bluetooth_test_status = QLabel("Bluetooth Test:_____")
         self.xmega_inter_status = QLabel("Xmega Interfaces:_____")
         self.hall_effect_status = QLabel("Hall Effect Sensor Test:_____")
-        self.led_test_status = QLabel("LED Test:_____")
+        self.b_led_test_status = QLabel("Blue LED:_____")
         self.solar_charge_v_status = QLabel("Solar Charge Voltage:_____V")
         self.solar_charge_i_status = QLabel("Solar Charge Current:_____mA")
         self.deep_sleep_i_status = QLabel("Deep Sleep Current:_____uA")
@@ -351,11 +353,12 @@ class TestUtility(QMainWindow):
         self.uart_5v_status.setStyleSheet(status_lbl_stylesheet)
         self.uart_off_status.setStyleSheet(status_lbl_stylesheet)
         self.one_wire_prog_status.setStyleSheet(status_lbl_stylesheet)
+        self.g_led_test_status.setStyleSheet(status_lbl_stylesheet)
         self.ble_prog_status.setStyleSheet(status_lbl_stylesheet)
         self.bluetooth_test_status.setStyleSheet(status_lbl_stylesheet)
         self.xmega_inter_status.setStyleSheet(status_lbl_stylesheet)
         self.hall_effect_status.setStyleSheet(status_lbl_stylesheet)
-        self.led_test_status.setStyleSheet(status_lbl_stylesheet)
+        self.b_led_test_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_v_status.setStyleSheet(status_lbl_stylesheet)
         self.solar_charge_i_status.setStyleSheet(status_lbl_stylesheet)
         self.deep_sleep_i_status.setStyleSheet(status_lbl_stylesheet)
@@ -375,9 +378,10 @@ class TestUtility(QMainWindow):
         status_vbox1.addWidget(self.uart_5v_status)
         status_vbox1.addWidget(self.uart_off_status)
         status_vbox1.addWidget(self.one_wire_prog_status)
+        status_vbox1.addWidget(self.g_led_test_status)
         status_vbox1.addWidget(self.ble_prog_status)
         status_vbox1.addWidget(self.bluetooth_test_status)
-        status_vbox1.addWidget(self.led_test_status)
+        status_vbox1.addWidget(self.b_led_test_status)
         status_vbox1.addWidget(self.xmega_inter_status)
         status_vbox1.addWidget(self.hall_effect_status)
         status_vbox1.addWidget(self.solar_charge_v_status)

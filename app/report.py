@@ -27,8 +27,8 @@ class Report:
         self.data = {
             # key : ["Name", value, PASS/FAIL]
             "timestamp": ["Timestamp", None, "PASS"],
-            "pcba_sn": ["PCBA PN", None, None],
-            "pcba_pn": ["PCBA SN", None, None],
+            "pcba_pn": ["PCBA PN", None, None],
+            "pcba_sn": ["PCBA SN", None, None],
             "tester_id": ["Tester ID", None, None],
             "input_v": ["Input Voltage (V)", None, None],
             "input_i": ["Input Current (mA)", None, None],
@@ -44,10 +44,12 @@ class Report:
             "bt_comms": ["Bluetooth Comms to 505", "", None],
             "ble_ver": ["BLE Version", None, "", None],
             "bat_v": ["Battery Voltage (V)", None, None],
-            "serial_match": ["Serial Number Match", None, None],
             "iridium_match": ["Iridium Connected", None, None],
             "board_id": ["Board ID", None, None],
-            "tac_connected": ["TAC Port Connected", None, None],
+            "tac_connected_1": ["TAC Port 1 Connected", None, None],
+            "tac_connected_2": ["TAC Port 2 Connected", None, None],
+            "tac_connected_3": ["TAC Port 3 Connected", None, None],
+            "tac_connected_4": ["TAC Port 4 Connected", None, None],
             "flash_comms": ["Flash Communication", None, None],
             "rtc_alarm": ["RTC Alarm", None, "PASS"],
             "gps_comms": ["GPS Connected", None, None],
@@ -57,7 +59,9 @@ class Report:
             "solar_i": ["Solar Charge Current (mA)", None, None],
             "deep_sleep_i": ["Deep Sleep Current (uA)", None, None],
             "uart_comms": ["UART Communication w/o Battery", None, None],
-            "led_test": ["LED Test", None, None]
+            "g_led_test": ["Green LED Test", None, None],
+            "b_led_test": ["Blue LED Test", None, None],
+            "r_led_test": ["Red LED Test", None, None]
         }
         self.file_path = ""
 

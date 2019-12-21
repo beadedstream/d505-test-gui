@@ -38,15 +38,23 @@ class SerialManager(QObject):
         return serial.tools.list_ports.comports()
 
     @pyqtSlot(str)
-    def send_command(self, command):
+    def sc(self, command):
         """Checks connection to the serial port and sends a command."""
         if self.ser.is_open:
             try:
+                then = time.time()
+                print(command)
                 self.flush_buffers()
 
                 command = (command + "\r\n").encode()
                 self.ser.write(command)
                 data = self.ser.read_until(self.end).decode()
+
+                now = time.time()
+                print(now - then)
+
+                print(data)
+
                 self.data_ready.emit(data)
             except serial.serialutil.SerialException:
                 self.no_port_sel.emit()

@@ -69,14 +69,14 @@ class CypressBLE(QWizardPage):
         self.bt_comm_btn_pass.clicked.connect(self.bt_comm_pass)
         self.bt_comm_btn_fail.clicked.connect(self.bt_comm_fail)
 
-        self.leds_lbl = QLabel("Verify the blue & green LEDs are working.")
-        self.leds_lbl.setFont(self.label_font)
-        self.leds_btn_pass = QPushButton("PASS")
-        self.leds_btn_pass.setMaximumWidth(75)
-        self.leds_btn_fail = QPushButton("FAIL")
-        self.leds_btn_fail.setMaximumWidth(75)
-        self.leds_btn_pass.clicked.connect(self.leds_pass)
-        self.leds_btn_fail.clicked.connect(self.leds_fail)
+        self.b_led_lbl = QLabel("Verify the blue LED is working.")
+        self.b_led_lbl.setFont(self.label_font)
+        self.b_led_btn_pass = QPushButton("PASS")
+        self.b_led_btn_pass.setMaximumWidth(75)
+        self.b_led_btn_fail = QPushButton("FAIL")
+        self.b_led_btn_fail.setMaximumWidth(75)
+        self.b_led_btn_pass.clicked.connect(self.b_led_pass)
+        self.b_led_btn_fail.clicked.connect(self.b_led_fail)
 
         self.psoc_pbar = QProgressBar()
         self.psoc_pbar_lbl = QLabel("PSoC version")
@@ -103,9 +103,9 @@ class CypressBLE(QWizardPage):
         self.grid.addWidget(self.bt_comm_lbl, 3, 0)
         self.grid.addWidget(self.bt_comm_btn_pass, 3, 1)
         self.grid.addWidget(self.bt_comm_btn_fail, 3, 2)
-        self.grid.addWidget(self.leds_lbl, 4, 0)
-        self.grid.addWidget(self.leds_btn_pass, 4, 1)
-        self.grid.addWidget(self.leds_btn_fail, 4, 2)
+        self.grid.addWidget(self.b_led_lbl, 4, 0)
+        self.grid.addWidget(self.b_led_btn_pass, 4, 1)
+        self.grid.addWidget(self.b_led_btn_fail, 4, 2)
         self.grid.addLayout(self.psoc_layout, 5, 0)
         self.grid.addWidget(self.uart_wire_lbl, 6, 0)
 
@@ -124,7 +124,7 @@ class CypressBLE(QWizardPage):
 
     def initializePage(self):
         self.is_complete = False
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.complete_signal.connect(self.completeChanged)
         self.d505.button(QWizard.NextButton).setEnabled(False)
 
@@ -136,9 +136,9 @@ class CypressBLE(QWizardPage):
     def port_warning(self):
         """Creates a QMessagebox warning when no serial port selected."""
         QMessageBox.warning(self, "Warning!", "No serial port selected!")
-        self.leds_lbl.setStyleSheet("QLabel {color: black}")
-        self.leds_btn_pass.setEnabled(True)
-        self.leds_btn_fail.setEnabled(True)
+        self.b_led_lbl.setStyleSheet("QLabel {color: black}")
+        self.b_led_btn_pass.setEnabled(True)
+        self.b_led_btn_fail.setEnabled(True)
         self.psoc_pbar_lbl.setText("PSoC version")
         self.psoc_pbar.setRange(0, 1)
         self.psoc_pbar.setValue(0)
@@ -179,22 +179,22 @@ class CypressBLE(QWizardPage):
         self.bt_comm_btn_pass.setEnabled(False)
         self.bt_comm_btn_fail.setEnabled(False)
 
-    def leds_pass(self):
-        self.tu.led_test_status.setText("LED Test: PASS")
-        self.tu.led_test_status.setStyleSheet(self.d505.status_style_pass)
-        self.leds_lbl.setStyleSheet("QLabel {color: grey}")
-        self.report.write_data("led_test", "", "PASS")
-        self.leds_btn_pass.setEnabled(False)
-        self.leds_btn_fail.setEnabled(False)
+    def b_led_pass(self):
+        self.tu.b_led_test_status.setText("Blue LED: PASS")
+        self.tu.b_led_test_status.setStyleSheet(self.d505.status_style_pass)
+        self.b_led_lbl.setStyleSheet("QLabel {color: grey}")
+        self.report.write_data("b_led_test", "", "PASS")
+        self.b_led_btn_pass.setEnabled(False)
+        self.b_led_btn_fail.setEnabled(False)
         self.psoc_version()
 
-    def leds_fail(self):
-        self.tu.led_test_status.setText("LED Test: FAIL")
-        self.tu.led_test_status.setStyleSheet(self.d505.status_style_fail)
-        self.leds_lbl.setStyleSheet("QLabel {color: grey}")
-        self.report.write_data("led_test", "", "FAIL")
-        self.leds_btn_pass.setEnabled(False)
-        self.leds_btn_fail.setEnabled(False)
+    def b_led_fail(self):
+        self.tu.b_led_test_status.setText("Blue LED: FAIL")
+        self.tu.b_led_test_status.setStyleSheet(self.d505.status_style_fail)
+        self.b_led_lbl.setStyleSheet("QLabel {color: grey}")
+        self.report.write_data("b_led_test", "", "FAIL")
+        self.b_led_btn_pass.setEnabled(False)
+        self.b_led_btn_pass.setEnabled(False)
         self.psoc_version()
 
     def psoc_version(self):

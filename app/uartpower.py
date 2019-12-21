@@ -84,7 +84,7 @@ class UartPower(QWizardPage):
     def initializePage(self):
         self.is_complete = False
         self.complete_signal.connect(self.completeChanged)
-        self.command_signal.connect(self.sm.send_command)
+        self.command_signal.connect(self.sm.sc)
         self.d505.button(QWizard.NextButton).setEnabled(False)
         self.hall_effect_btn_pass.setEnabled(False)
         self.hall_effect_btn_fail.setEnabled(False)
@@ -118,6 +118,7 @@ class UartPower(QWizardPage):
         self.tu.hall_effect_status.setStyleSheet(
             self.d505.status_style_pass)
         self.report.write_data("hall_effect", "", "PASS")
+        self.report.write_data("r_led_test", "", "PASS")
         self.hall_effect_btn_pass.setEnabled(False)
         self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(True)
@@ -128,6 +129,7 @@ class UartPower(QWizardPage):
         self.tu.hall_effect_status.setStyleSheet(
             self.d505.status_style_fail)
         self.report.write_data("hall_effect", "", "FAIL")
+        self.report.write_data("r_led_test", "", "FAIL")
         self.hall_effect_btn_pass.setEnabled(False)
         self.hall_effect_btn_fail.setEnabled(False)
         self.leds_chkbx.setEnabled(True)
@@ -136,9 +138,9 @@ class UartPower(QWizardPage):
         return self.is_complete
 
     def page_complete(self):
-        self.tu.led_test_status.setText("LED Test: PASS")
-        self.report.write_data("led_test", "", "PASS")
-        self.tu.led_test_status.setStyleSheet(
-            self.d505.status_style_pass)
+        #self.tu.led_test_status.setText("LED Test: PASS")
+        #self.report.write_data("led_test", "", "PASS")
+        #self.tu.led_test_status.setStyleSheet(
+        #    self.d505.status_style_pass)
         self.is_complete = True
         self.complete_signal.emit()
