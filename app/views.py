@@ -166,7 +166,6 @@ class TestUtility(QMainWindow):
         self.start_btn.setFixedWidth(200)
         self.start_btn.setAutoDefault(True)
         self.start_btn.clicked.connect(self.parse_values)
-
         self.logo_img = QPixmap(self.resource_path("h_logo.png"))
         self.logo_img = self.logo_img.scaledToWidth(600)
         self.logo = QLabel()
