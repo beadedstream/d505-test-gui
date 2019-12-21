@@ -14,7 +14,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "1.1.5"
+VERSION_NUM = "1.1.6"
 
 WINDOW_WIDTH = 1550
 WINDOW_HEIGHT = 900
