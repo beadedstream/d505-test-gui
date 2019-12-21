@@ -58,7 +58,7 @@ class Report:
             "solar_v": ["Solar Charge Voltage (V)", None, None],
             "solar_i": ["Solar Charge Current (mA)", None, None],
             "deep_sleep_i": ["Deep Sleep Current (uA)", None, None],
-            "uart_comms": ["UART Communication w/o Battery", None, None],
+            "uart_comms": ["UART Power", None, None],
             "g_led_test": ["Green LED Test", None, None],
             "b_led_test": ["Blue LED Test", None, None],
             "r_led_test": ["Red LED Test", None, None]
