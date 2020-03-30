@@ -14,10 +14,10 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QSettings, Qt, QThread
 
 
-VERSION_NUM = "1.1.6"
+VERSION_NUM = "1.1.7"
 
-WINDOW_WIDTH = 1550
-WINDOW_HEIGHT = 900
+WINDOW_WIDTH = 1500
+WINDOW_HEIGHT = 800
 
 ABOUT_TEXT = f"""
              PCB assembly test utility. Copyright Beaded Streams, 2019.
